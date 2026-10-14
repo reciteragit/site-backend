@@ -1,0 +1,219 @@
+{
+  "teachers": [
+    {
+      "slug": "selsebil-benelhaj-sghaier",
+      "name": "Selsebil",
+      "experience": "5+ years",
+      "languages": [
+        "English",
+        "Arabic",
+        "French"
+      ],
+      "image": "/assets/selsebil.jpg",
+      "profile_url": "https://academy.recitera.com/selsebil-benelhaj-sghaier",
+      "price": "30",
+      "currency": "CAD",
+      "sort_order": 0
+    },
+    {
+      "slug": "mohammed-atalla",
+      "name": "Mohammed",
+      "experience": "4+ years",
+      "languages": [
+        "Arabic"
+      ],
+      "image": "/assets/mohammed.jpg",
+      "profile_url": "https://academy.recitera.com/mohammed-atalla",
+      "price": "30",
+      "currency": "CAD",
+      "sort_order": 1
+    },
+    {
+      "slug": "abozar-profile",
+      "name": "Abozar",
+      "experience": "16+ years",
+      "languages": [
+        "English"
+      ],
+      "image": "/assets/abozar.jpg",
+      "profile_url": "https://academy.recitera.com/abozar-profile",
+      "price": "40",
+      "currency": "CAD",
+      "sort_order": 2
+    },
+    {
+      "slug": "amir-hossein-rezaaee",
+      "name": "Amir Hossein",
+      "experience": "1+ years",
+      "languages": [
+        "English"
+      ],
+      "image": "/assets/amir.jpg",
+      "profile_url": "https://academy.recitera.com/amir-hossein-rezaaee",
+      "price": "30",
+      "currency": "CAD",
+      "sort_order": 3
+    },
+    {
+      "slug": "fatima-abdulkazem",
+      "name": "Fatima",
+      "experience": "10+ years",
+      "languages": [
+        "English"
+      ],
+      "image": "/assets/fatima.png",
+      "profile_url": "https://academy.recitera.com/fatima-abdulkazem",
+      "price": "30",
+      "currency": "CAD",
+      "sort_order": 4
+    },
+    {
+      "slug": "setayesh-zahra-rezaaee",
+      "name": "Setayesh",
+      "experience": "1+ years",
+      "languages": [
+        "English"
+      ],
+      "image": "/assets/setayesh.jpg",
+      "profile_url": "https://academy.recitera.com/setayesh-zahra-rezaaee",
+      "price": "25",
+      "currency": "CAD",
+      "sort_order": 5
+    },
+    {
+      "slug": "amin-monemian",
+      "name": "Amin",
+      "experience": "16+ years",
+      "languages": [
+        "English"
+      ],
+      "image": "/assets/amin.jpg",
+      "profile_url": "https://academy.recitera.com/amin-monemian",
+      "price": "30",
+      "currency": "CAD",
+      "sort_order": 6
+    }
+  ],
+  "courses": [
+    {
+      "slug": "surah-al-ikhlas-step-by-step",
+      "title": "Surah Al-Ikhlas",
+      "description": "Build clear pronunciation and fluent recitation through listening and guided practice.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-ikhlas-step-by-step",
+      "price": "0",
+      "currency": "CAD",
+      "sort_order": 0
+    },
+    {
+      "slug": "surah-quraysh-step-by-step",
+      "title": "Surah Quraysh",
+      "description": "Explore Surah Quraysh with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-quraysh-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 1
+    },
+    {
+      "slug": "surah-al-asr-step-by-step",
+      "title": "Surah Al-Asr",
+      "description": "Explore Surah Al-Asr with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-asr-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 2
+    },
+    {
+      "slug": "surah-al-falaq-step-by-step",
+      "title": "Surah Al-Falaq",
+      "description": "Explore Surah Al-Falaq with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-falaq-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 3
+    },
+    {
+      "slug": "surah-al-fil-step-by-step",
+      "title": "Surah Al-Fil",
+      "description": "Explore Surah Al-Fil with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-fil-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 4
+    },
+    {
+      "slug": "surah-al-humazah-step-by-step",
+      "title": "Surah Al-Humazah",
+      "description": "Explore Surah Al-Humazah with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-humazah-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 5
+    },
+    {
+      "slug": "surah-al-kafirun-step-by-step",
+      "title": "Surah Al-Kafirun",
+      "description": "Explore Surah Al-Kafirun with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-kafirun-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 6
+    },
+    {
+      "slug": "surah-al-kawthar-step-by-step",
+      "title": "Surah Al-Kawthar",
+      "description": "Explore Surah Al-Kawthar with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-kawthar-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 7
+    },
+    {
+      "slug": "surah-al-maun-step-by-step",
+      "title": "Surah Al-Ma’un",
+      "description": "Explore Surah Al-Ma’un with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-maun-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 8
+    },
+    {
+      "slug": "surah-al-masad-step-by-step",
+      "title": "Surah Al-Masad",
+      "description": "Explore Surah Al-Masad with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-al-masad-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 9
+    },
+    {
+      "slug": "surah-an-nas-step-by-step",
+      "title": "Surah An-Nas",
+      "description": "Explore Surah An-Nas with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-an-nas-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 10
+    },
+    {
+      "slug": "surah-an-nasr-step-by-step",
+      "title": "Surah An-Nasr",
+      "description": "Explore Surah An-Nasr with a focused lesson in the Step by Step collection.",
+      "teacher_slug": "mohammed-atalla",
+      "course_url": "https://academy.recitera.com/course/surah-an-nasr-step-by-step",
+      "price": "5",
+      "currency": "CAD",
+      "sort_order": 11
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.test import TestCase
+from rest_framework.test import APIClient
+from .models import Teacher, Course
+
+class CatalogTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_catalog", verbosity=0)
+
+    def test_seed_is_repeatable_and_preserves_admin_edits(self):
+        teacher = Teacher.objects.first()
+        teacher.name = "Edited in admin"
+        teacher.save()
+        call_command("seed_catalog", verbosity=0)
+        teacher.refresh_from_db()
+        self.assertEqual(teacher.name, "Edited in admin")
+        self.assertEqual(Teacher.objects.count(), 7)
+        self.assertEqual(Course.objects.count(), 12)
+
+    def test_public_catalog_and_detail(self):
+        response = self.client.get("/api/teachers/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 7)
+        response = self.client.get("/api/courses/")
+        self.assertEqual(len(response.json()), 12)
+        self.assertEqual(response.json()[0]["price"], "0.00")
+        self.assertEqual(self.client.get("/api/teachers/mohammed-atalla/").status_code, 200)
+        self.assertEqual(self.client.get("/api/teachers/missing/").status_code, 404)
+
+    def test_unpublished_content_not_exposed(self):
+        teacher = Teacher.objects.get(slug="mohammed-atalla")
+        teacher.published = False
+        teacher.save()
+        self.assertEqual(len(self.client.get("/api/teachers/").json()), 6)
+        self.assertEqual(self.client.get("/api/courses/").json(), [])
+        self.assertEqual(self.client.get("/api/teachers/mohammed-atalla/").status_code, 404)
+
+    def test_public_cannot_write(self):
+        client = APIClient()
+        self.assertEqual(client.post("/api/teachers/", {"name": "Unauthorized"}, format="json").status_code, 405)
+        self.assertEqual(client.delete("/api/courses/surah-al-ikhlas-step-by-step/").status_code, 405)
+
+    def test_health_and_admin(self):
+        self.assertEqual(self.client.get("/api/health/").json()["status"], "ok")
+        self.assertEqual(self.client.get("/admin/").status_code, 302)
+        user = get_user_model().objects.create_superuser("admin-test", "admin@example.com", "test-only-password")
+        self.client.force_login(user)
+        self.assertEqual(self.client.get("/admin/catalog/teacher/").status_code, 200)
+        self.assertEqual(self.client.get("/admin/catalog/course/").status_code, 200)
+
+    def test_admin_can_edit_live_catalog(self):
+        user = get_user_model().objects.create_superuser("editor", "editor@example.com", "test-only-password")
+        self.client.force_login(user)
+        teacher = Teacher.objects.get(slug="mohammed-atalla")
+        response = self.client.post(f"/admin/catalog/teacher/{teacher.pk}/change/", {
+            "slug": teacher.slug, "name": "Updated teacher", "experience": teacher.experience,
+            "languages": '["Arabic", "English"]', "image": teacher.image,
+            "profile_url": teacher.profile_url, "price": "35.00", "currency": "CAD",
+            "sort_order": teacher.sort_order, "published": "on", "_save": "Save",
+        })
+        self.assertEqual(response.status_code, 302)
+        data = self.client.get("/api/teachers/mohammed-atalla/").json()
+        self.assertEqual(data["name"], "Updated teacher")
+        self.assertEqual(data["price"], "35.00")
+        self.assertEqual(data["languages"], ["Arabic", "English"])
