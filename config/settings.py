@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
-import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
+from .database import database_settings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
@@ -25,14 +25,7 @@ MIDDLEWARE = ["django.middleware.security.SecurityMiddleware", "whitenoise.middl
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [], "APP_DIRS": True, "OPTIONS": {"context_processors": ["django.template.context_processors.request", "django.contrib.auth.context_processors.auth", "django.contrib.messages.context_processors.messages"]}}]
 WSGI_APPLICATION = "config.wsgi.application"
-database_url = os.getenv("DATABASE_URL")
-if database_url:
-    DATABASES = {"default": dj_database_url.parse(database_url, conn_max_age=0, ssl_require=os.getenv("DATABASE_SSL_REQUIRED", "true").lower() == "true")}
-    DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
-elif DEBUG:
-    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
-else:
-    raise ImproperlyConfigured("DATABASE_URL is required in production; use the Supabase PostgreSQL pooler")
+DATABASES = database_settings(os.environ, BASE_DIR, DEBUG)
 AUTH_PASSWORD_VALIDATORS = [{"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}, {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"}, {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"}, {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"}]
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"

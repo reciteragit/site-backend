@@ -21,7 +21,7 @@ export DJANGO_DEBUG=true
 
 Environment variables must be exported: Django does not auto-load `.env.example`. SQLite is supported only when `DJANGO_DEBUG=true` and no `DATABASE_URL` is set. Production requires PostgreSQL and a secret key; it fails closed without them. Do not set debug mode on Vercel.
 
-Run the Next.js frontend with `NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api`; default local frontend origins on port 3000 are allowed only in debug mode. For a different port, set `CORS_ALLOWED_ORIGINS` to its exact origin.
+Run the Next.js frontend with server-only `BACKEND_API_URL=http://127.0.0.1:8000/api`. Its browser requests use the same-origin Next.js `/api/catalog/` proxy, so CORS is unnecessary. `CORS_ALLOWED_ORIGINS` is needed only for optional direct browser API access. The frontend connection check (`SITE_URL=... npm run check:connection`) verifies Django readiness and PostgreSQL through the proxy.
 
 ## API and admin
 
@@ -60,3 +60,7 @@ python manage.py createsuperuser
 ```
 
 Then verify `/api/health/`, admin login, and frontend catalog fetching. For the complete ordered deployment steps, see `docs/deployment.md` in the frontend repository. Local validation does not prove Vercel or Supabase has been deployed.
+
+### Vercel Marketplace connection variables
+
+The backend accepts `DATABASE_URL` or, when it is unset, Vercel’s injected `POSTGRES_URL`. An explicitly set `DATABASE_URL` has priority. Connect the Supabase integration to the **backend project**, select the Production environment, and redeploy after variable injection. Verify the actual variable names in project settings; the database resource name alone is not a PostgreSQL connection string. Production rejects missing connections and non-PostgreSQL databases. Keep SSL enabled.

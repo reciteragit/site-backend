@@ -1,8 +1,28 @@
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, SimpleTestCase
 from rest_framework.test import APIClient
 from .models import Teacher, Course
+from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
+from config.database import database_settings
+
+class DatabaseConfigurationTests(SimpleTestCase):
+    def test_vercel_integration_connection_and_ssl(self):
+        db = database_settings({"POSTGRES_URL": "postgresql://localhost/recitera"}, Path("/tmp"), False)["default"]
+        self.assertEqual(db["ENGINE"], "django.db.backends.postgresql")
+        self.assertEqual(db["OPTIONS"]["sslmode"], "require")
+        self.assertEqual(db["CONN_MAX_AGE"], 0)
+        self.assertTrue(db["DISABLE_SERVER_SIDE_CURSORS"])
+
+    def test_explicit_connection_has_priority(self):
+        db = database_settings({"DATABASE_URL": "postgresql://localhost/explicit", "POSTGRES_URL": "postgresql://localhost/integration"}, Path("/tmp"), False)["default"]
+        self.assertEqual(db["NAME"], "explicit")
+
+    def test_production_rejects_missing_or_non_postgres_database(self):
+        for environ in [{}, {"DATABASE_URL": "sqlite:////tmp/not-production.sqlite3", "DATABASE_SSL_REQUIRED": "false"}]:
+            with self.assertRaises(ImproperlyConfigured):
+                database_settings(environ, Path("/tmp"), False)
 
 class CatalogTests(TestCase):
     @classmethod
