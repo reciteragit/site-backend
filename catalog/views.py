@@ -2,7 +2,7 @@ from django.db import connection, DatabaseError
 from django.http import JsonResponse
 from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ReadOnlyModelViewSet
-from .models import Teacher, Course, VolunteerApplication, NewsletterSubscriber
+from .models import Teacher, Course, VolunteerApplication, NewsletterSubscriber, TeacherApplication, TeacherAttachment
 from .serializers import TeacherSerializer, CourseSerializer
 
 class TeacherViewSet(ReadOnlyModelViewSet):
@@ -29,6 +29,8 @@ def health(request):
         Course.objects.exists()
         VolunteerApplication.objects.exists()
         NewsletterSubscriber.objects.exists()
+        TeacherApplication.objects.exists()
+        TeacherAttachment.objects.exists()
     except DatabaseError:
         return JsonResponse({"status": "unavailable"}, status=503)
     return JsonResponse({"status": "ok", "database": connection.vendor})
