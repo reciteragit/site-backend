@@ -32,7 +32,7 @@ Run the Next.js frontend with server-only `BACKEND_API_URL=http://127.0.0.1:8000
 
 Catalog responses are arrays. API writes are not enabled. Admin requires staff authentication and CSRF protection; there are no default production credentials. Password validators are enabled. Existing academy booking, payment, and application destinations remain external; this migration does not implement payment processing.
 
-`seed_catalog` creates missing original entries and preserves later edits. Run migrations explicitly on the production database; the Vercel entry point never migrates or creates an admin during requests.
+`seed_catalog` creates missing original entries and preserves later edits. Vercel runs production migrations and idempotent catalog seeding at build time. For other hosts, run them explicitly. The web application never migrates or creates an admin during requests.
 
 ## Tests
 
@@ -47,7 +47,7 @@ Tests exercise catalog import idempotence, publication, public read-only access,
 
 ## Vercel + Supabase
 
-Deploy this repository as a separate Vercel Python project using the root `vercel.json`. Python dependencies are pinned in `requirements.txt`; `api/index.py` exposes the Django WSGI `app`. WhiteNoise serves Django admin assets collected into ephemeral `/tmp` on cold starts. All persistent state uses PostgreSQL, including sessions.
+Deploy this repository as a separate Vercel Python project using the root `vercel.json`. Python dependencies are pinned in `requirements.txt`. The Vercel Django preset detects `config/wsgi.py`; its build hook collects Django admin assets. The configured build command runs migrations and idempotent catalog seeding before deployment. Database migrations never run on HTTP requests. `api/index.py` is retained only as a legacy Python entry point. All persistent state uses PostgreSQL, including sessions.
 
 Use the Supabase Free project **transaction pooler** URL with SSL. Keep `DATABASE_SSL_REQUIRED=true`. Configure `DJANGO_SECRET_KEY`, `DATABASE_URL`, `DJANGO_ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, and `CORS_ALLOWED_ORIGINS` in Vercel; see `.env.example` for names. Do not commit values.
 
