@@ -2,7 +2,7 @@ from django.db import connection, DatabaseError
 from django.http import JsonResponse
 from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ReadOnlyModelViewSet
-from .models import Teacher, Course
+from .models import Teacher, Course, VolunteerApplication, NewsletterSubscriber
 from .serializers import TeacherSerializer, CourseSerializer
 
 class TeacherViewSet(ReadOnlyModelViewSet):
@@ -27,6 +27,9 @@ def health(request):
         # A connection alone does not demonstrate completed migrations.
         Teacher.objects.exists()
         Course.objects.exists()
+        VolunteerApplication.objects.exists()
+        NewsletterSubscriber.objects.exists()
     except DatabaseError:
         return JsonResponse({"status": "unavailable"}, status=503)
     return JsonResponse({"status": "ok", "database": connection.vendor})
+

@@ -1,6 +1,30 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from .validators import validate_languages
+import uuid
+
+class VolunteerApplication(models.Model):
+    request_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=150)
+    email = models.EmailField(max_length=254)
+    whatsapp = models.CharField(max_length=40)
+    areas = models.JSONField(default=list)
+    message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed = models.BooleanField(default=False)
+    class Meta:
+        ordering = ['-created_at']
+    def __str__(self):
+        return self.name
+
+class NewsletterSubscriber(models.Model):
+    email = models.EmailField(max_length=254, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    active = models.BooleanField(default=True)
+    class Meta:
+        ordering = ['-created_at']
+    def __str__(self):
+        return self.email
 
 class Teacher(models.Model):
     slug = models.SlugField(unique=True)
@@ -36,3 +60,4 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
