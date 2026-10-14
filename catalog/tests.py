@@ -14,6 +14,13 @@ class DatabaseConfigurationTests(SimpleTestCase):
         self.assertEqual(db["OPTIONS"]["sslmode"], "require")
         self.assertEqual(db["CONN_MAX_AGE"], 0)
         self.assertTrue(db["DISABLE_SERVER_SIDE_CURSORS"])
+        self.assertIsNone(db["OPTIONS"]["prepare_threshold"])
+
+    def test_supabase_metadata_removed_without_disabling_tls(self):
+        db = database_settings({"POSTGRES_URL": "postgresql://localhost/recitera?supa=client-metadata&sslmode=require&connect_timeout=10"}, Path("/tmp"), False)["default"]
+        self.assertNotIn("supa", db["OPTIONS"])
+        self.assertEqual(db["OPTIONS"]["sslmode"], "require")
+        self.assertEqual(str(db["OPTIONS"]["connect_timeout"]), "10")
 
     def test_explicit_connection_has_priority(self):
         db = database_settings({"DATABASE_URL": "postgresql://localhost/explicit", "POSTGRES_URL": "postgresql://localhost/integration"}, Path("/tmp"), False)["default"]
