@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from .validators import validate_languages
 import uuid
+from .payment_models import StripeSettings, Donor, PaymentItem, PaymentOrder, StripeEvent
 
 class TeacherApplication(models.Model):
     request_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)

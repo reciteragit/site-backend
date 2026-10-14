@@ -1,0 +1,129 @@
+from datetime import datetime,timezone as dt_timezone
+from decimal import Decimal
+from django.db import transaction
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from rest_framework import serializers
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+import stripe
+from .forms import FormThrottle
+from .models import Course,Teacher
+from .payment_models import StripeSettings,Donor,PaymentOrder,PaymentItem,StripeEvent
+from .stripe_gateway import credentials,ready,client,valid_origin
+
+PATHWAYS={'general':'General Donations','prophet':'In honour of Prophet Muhammad (PBUH)','loved-ones':'In memory of loved ones','reciters':'In memory of Quran reciters'}
+class CheckoutSerializer(serializers.Serializer):
+    request_id=serializers.UUIDField()
+    purpose=serializers.ChoiceField(choices=['donation','course','lesson','other'],default='donation')
+    reference=serializers.CharField(max_length=200,default='general')
+    amount=serializers.DecimalField(max_digits=9,decimal_places=2,min_value=Decimal('1'),max_value=Decimal('100000'),required=False)
+    first_name=serializers.CharField(max_length=100)
+    last_name=serializers.CharField(max_length=100,allow_blank=True,required=False,default='')
+    email=serializers.EmailField(max_length=254)
+    phone=serializers.CharField(max_length=40,allow_blank=True,required=False,default='')
+    country=serializers.CharField(max_length=100,allow_blank=True,required=False,default='')
+    comment=serializers.CharField(max_length=5000,allow_blank=True,required=False,default='')
+    anonymous=serializers.BooleanField(default=False)
+
+def price(data,config):
+    purpose,ref=data['purpose'],data['reference']
+    if purpose=='donation':
+        if ref not in PATHWAYS or 'amount' not in data:raise serializers.ValidationError('Choose a donation pathway and valid amount.')
+        return data['amount'],PATHWAYS[ref]
+    if not config or not ready(config) or not getattr(config,{'course':'courses_enabled','lesson':'lessons_enabled','other':'other_payments_enabled'}[purpose]):raise serializers.ValidationError('This payment section is not enabled.')
+    if purpose=='course':
+        item=Course.objects.filter(slug=ref,published=True,teacher__published=True,currency='CAD').first()
+        if item:return item.price,item.title
+    elif purpose=='lesson':
+        item=Teacher.objects.filter(slug=ref,published=True,currency='CAD').first()
+        if item:return item.price,f'One-to-one lesson with {item.name}'
+    else:
+        item=PaymentItem.objects.filter(slug=ref,active=True).first()
+        if item:return item.amount,item.title
+    raise serializers.ValidationError('Payment item not found.')
+
+class PaymentConfiguration(APIView):
+    permission_classes=[AllowAny];authentication_classes=[]
+    def get(self,request):
+        config=StripeSettings.objects.first()
+        return Response({'ready':bool(config and config.donations_enabled and ready(config)),'mode':config.mode if config else 'test','currency':'CAD','amounts':[1,5,10,15,25,50]})
+
+class PaymentItemDetails(APIView):
+    permission_classes=[AllowAny];authentication_classes=[]
+    def get(self,request,purpose,reference):
+        if purpose not in ['course','lesson','other']:return Response({'error':'Not found'},status=404)
+        config=StripeSettings.objects.first()
+        try:amount,title=price({'purpose':purpose,'reference':reference},config)
+        except serializers.ValidationError:return Response({'error':'This payment is not currently available.'},status=503)
+        return Response({'title':title,'amount':str(amount),'currency':'CAD','mode':config.mode},headers={'Cache-Control':'no-store'})
+
+class Checkout(APIView):
+    permission_classes=[AllowAny];authentication_classes=[];throttle_classes=[FormThrottle]
+    def post(self,request):
+        serializer=CheckoutSerializer(data=request.data);serializer.is_valid(raise_exception=True);data=serializer.validated_data
+        config=StripeSettings.objects.first();amount,title=price(data,config)
+        if amount<=0:raise serializers.ValidationError('This item does not require payment.')
+        if data['purpose']=='donation' and config and not config.donations_enabled:return Response({'error':'Donation registration is currently closed.'},status=503)
+        email=data['email'].strip().lower()
+        with transaction.atomic():
+            donor,_=Donor.objects.get_or_create(email=email,defaults={k:data[k] for k in ['first_name','last_name','phone','country']})
+            order,created=PaymentOrder.objects.get_or_create(request_id=data['request_id'],defaults={'donor':donor,'first_name':data['first_name'],'last_name':data['last_name'],'phone':data['phone'],'country':data['country'],'purpose':data['purpose'],'reference':data['reference'],'title':title,'amount':amount,'comment':data['comment'],'anonymous':data['anonymous'],'mode':config.mode if config else 'test'})
+            if not created and (order.donor_id!=donor.pk or order.amount!=amount or order.purpose!=data['purpose'] or order.reference!=data['reference']):return Response({'error':'This request has already been used. Start a new payment request.'},status=409)
+        if order.status=='paid':return Response({'success':True,'order_id':str(order.id),'status':'paid'})
+        if not ready(config):return Response({'success':True,'order_id':str(order.id),'status':order.status,'payment_ready':False},status=202)
+        if order.mode!=config.mode:return Response({'error':'Payment settings changed. Please start a new request.'},status=409)
+        if order.checkout_url:
+            if order.checkout_expires_at and order.checkout_expires_at<=timezone.now():return Response({'error':'This checkout expired. Please start a new payment request.'},status=409)
+            return Response({'success':True,'order_id':str(order.id),'checkout_url':order.checkout_url,'payment_ready':True})
+        if not valid_origin(config.frontend_origin):return Response({'error':'Payment return address is not configured.'},status=503)
+        origin=config.frontend_origin.rstrip('/')
+        try:
+            session=client(config).v1.checkout.sessions.create({'mode':'payment','customer_email':email,'client_reference_id':str(order.id),'metadata':{'order_id':str(order.id),'purpose':order.purpose},'line_items':[{'price_data':{'currency':'cad','unit_amount':int(order.amount*100),'product_data':{'name':order.title}},'quantity':1}],'success_url':f'{origin}/payments/result?order={order.id}','cancel_url':f'{origin}/payments/result?order={order.id}&cancelled=1'},{'idempotency_key':f'recitera-{order.id}'})
+            if not session.url or not session.url.startswith('https://checkout.stripe.com/') or bool(session.livemode)!=(config.mode=='live'):raise ValueError('Unexpected checkout response')
+            PaymentOrder.objects.filter(pk=order.pk).update(stripe_session_id=session.id,checkout_url=session.url,checkout_expires_at=datetime.fromtimestamp(session.expires_at,dt_timezone.utc),status='pending')
+            return Response({'success':True,'order_id':str(order.id),'checkout_url':session.url,'payment_ready':True})
+        except (stripe.StripeError,ValueError):return Response({'error':'Payment checkout is temporarily unavailable. No payment has been taken.'},status=503)
+
+class PaymentStatus(APIView):
+    permission_classes=[AllowAny];authentication_classes=[]
+    def get(self,request,order_id):
+        order=PaymentOrder.objects.filter(pk=order_id).first()
+        if not order:return Response({'error':'Not found'},status=404)
+        return Response({'status':order.status,'amount':str(order.amount),'currency':order.currency,'purpose':order.purpose,'mode':order.mode},headers={'Cache-Control':'no-store'})
+
+@csrf_exempt
+@require_POST
+def stripe_webhook(request):
+    config=StripeSettings.objects.first()
+    if not config:return JsonResponse({'error':'Webhook is not configured.'},status=503)
+    event=None
+    for mode in ['test','live']:
+        _,secret=credentials(config,mode)
+        if not secret:continue
+        try:
+            candidate=stripe.Webhook.construct_event(request.body,request.headers.get('Stripe-Signature',''),secret).to_dict()
+            if bool(candidate.get('livemode'))!=(mode=='live'):continue
+            event=candidate;break
+        except (stripe.SignatureVerificationError,ValueError):continue
+    if event is None:return JsonResponse({'error':'Invalid signature.'},status=400)
+    accepted=['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed','checkout.session.expired']
+    if event['type'] not in accepted:return JsonResponse({'received':True})
+    obj=event['data']['object'];order_id=obj.get('metadata',{}).get('order_id')
+    if not order_id:return JsonResponse({'received':True})
+    try:
+        with transaction.atomic():
+            if StripeEvent.objects.filter(event_id=event['id']).exists():return JsonResponse({'received':True})
+            order=PaymentOrder.objects.select_for_update().filter(pk=order_id).first()
+            if not order:return JsonResponse({'error':'Order not found.'},status=400)
+            if (order.stripe_session_id and order.stripe_session_id!=obj['id']) or obj.get('amount_total')!=int(order.amount*100) or obj.get('currency')!='cad' or bool(event['livemode'])!=(order.mode=='live'):return JsonResponse({'error':'Payment does not match order.'},status=400)
+            if event['type'] in ['checkout.session.completed','checkout.session.async_payment_succeeded'] and obj.get('payment_status')=='paid':
+                order.status='paid';order.paid_at=timezone.now();order.stripe_payment_intent=obj.get('payment_intent') or '';order.stripe_session_id=obj['id'];order.save()
+            elif order.status!='paid' and event['type'] in ['checkout.session.async_payment_failed','checkout.session.expired']:
+                order.status='failed' if event['type'].endswith('failed') else 'expired';order.save(update_fields=['status'])
+            StripeEvent.objects.create(event_id=event['id'],event_type=event['type'])
+    except (ValueError,serializers.ValidationError):return JsonResponse({'error':'Invalid event.'},status=400)
+    return JsonResponse({'received':True})
