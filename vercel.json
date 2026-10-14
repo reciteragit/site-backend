@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "django",
-  "buildCommand": "python manage.py migrate --noinput && python manage.py seed_catalog"
+  "buildCommand": "python manage.py migrate --noinput && python manage.py seed_catalog && python manage.py bootstrap_admin"
 }

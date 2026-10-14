@@ -6,6 +6,8 @@ from .models import Teacher, Course
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from config.database import database_settings
+from unittest.mock import patch
+import os
 
 class DatabaseConfigurationTests(SimpleTestCase):
     def test_vercel_integration_connection_and_ssl(self):
@@ -45,6 +47,16 @@ class CatalogTests(TestCase):
         self.assertEqual(teacher.name, "Edited in admin")
         self.assertEqual(Teacher.objects.count(), 7)
         self.assertEqual(Course.objects.count(), 12)
+
+    def test_admin_bootstrap_is_idempotent(self):
+        password = "local-test-password-only-for-bootstrap-2026"
+        with patch.dict(os.environ, {"DJANGO_SUPERUSER_USERNAME": "bootstrap-test", "DJANGO_SUPERUSER_PASSWORD": password}):
+            call_command("bootstrap_admin", verbosity=0)
+            call_command("bootstrap_admin", verbosity=0)
+        user = get_user_model().objects.get(username="bootstrap-test")
+        self.assertTrue(user.is_superuser and user.is_staff)
+        self.assertTrue(user.check_password(password))
+        self.assertEqual(get_user_model().objects.filter(username="bootstrap-test").count(), 1)
 
     def test_public_catalog_and_detail(self):
         response = self.client.get("/api/teachers/")
