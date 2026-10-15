@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
-from .models import VolunteerApplication, NewsletterSubscriber
+from .models import VolunteerApplication, NewsletterSubscriber, ScholarshipApplication
 
 AREAS = ['Content & Social Media','Translation','Design & Video','Technology & Product','Marketing & Partnerships','Events & Community','Research','Other']
 class FormThrottle(AnonRateThrottle):
@@ -47,4 +47,21 @@ class NewsletterRegistration(APIView):
         serializer.is_valid(raise_exception=True)
         # Do not disclose existing subscribers or reactivate opted-out addresses.
         NewsletterSubscriber.objects.get_or_create(email=serializer.validated_data['email'])
+        return Response({'success': True}, status=201)
+
+class ScholarshipSerializer(VolunteerSerializer):
+    # Scholarship requests use the reference form's four fields.
+    areas = None
+
+class ScholarshipRegistration(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [FormThrottle]
+    def post(self, request):
+        serializer = ScholarshipSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        key = data.pop('request_id')
+        with transaction.atomic():
+            ScholarshipApplication.objects.get_or_create(request_id=key, defaults=data)
         return Response({'success': True}, status=201)

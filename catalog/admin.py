@@ -1,7 +1,7 @@
 from django.contrib import admin
 from . import payment_admin
 from .models import Teacher, Course
-from .models import VolunteerApplication, NewsletterSubscriber
+from .models import VolunteerApplication, NewsletterSubscriber, ScholarshipApplication
 from .models import TeacherApplication, TeacherAttachment
 from django.urls import path, reverse
 from django.http import FileResponse, HttpResponseForbidden, Http404
@@ -70,3 +70,10 @@ class CourseAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
     list_editable = ("published", "sort_order")
 
+
+@admin.register(ScholarshipApplication)
+class ScholarshipApplicationAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'whatsapp', 'created_at', 'reviewed')
+    list_filter = ('reviewed', 'created_at')
+    search_fields = ('name', 'email', 'whatsapp', 'message')
+    readonly_fields = ('request_id', 'created_at')
