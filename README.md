@@ -64,3 +64,10 @@ Then verify `/api/health/`, admin login, and frontend catalog fetching. For the 
 ### Vercel Marketplace connection variables
 
 The backend accepts `DATABASE_URL` or, when it is unset, Vercel’s injected `POSTGRES_URL`. An explicitly set `DATABASE_URL` has priority. Connect the Supabase integration to the **backend project**, select the Production environment, and redeploy after variable injection. Verify the actual variable names in project settings; the database resource name alone is not a PostgreSQL connection string. Production rejects missing connections and non-PostgreSQL databases. Keep SSL enabled.
+
+
+## Automatic Stripe donation connection
+
+The existing `catalog` payment models and donor form are used. Set `STRIPE_SECRET_KEY` securely on the backend and `STRIPE_AUTOCONFIGURE=true`; the Vercel build invokes `configure_stripe` after migrations. It verifies account access, provisions a donation webhook at `/api/payments/stripe/webhook/`, and saves keys/signing secrets encrypted in the existing Stripe settings. Subsequent builds reuse the managed endpoint. Optional `STRIPE_FRONTEND_ORIGIN` and `STRIPE_WEBHOOK_URL` select public HTTPS destinations. Missing configuration is skipped without changing saved admin settings.
+
+Only donation payments are enabled automatically. Existing other-section flags and live credentials are preserved; installing test credentials does not downgrade an active live account. Live-mode activation requires Stripe charges to be enabled. Bank information, tax status and business verification are never invented. `STRIPE_SECRET_KEY` must never appear in frontend variables, Git or logs. Mode-specific environment fallbacks and the existing write-only admin settings remain supported.

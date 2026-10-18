@@ -15,6 +15,10 @@ class StripeSettings(models.Model):
     live_secret_ciphertext = models.TextField(blank=True,editable=False)
     test_webhook_ciphertext = models.TextField(blank=True,editable=False)
     live_webhook_ciphertext = models.TextField(blank=True,editable=False)
+    test_webhook_id = models.CharField(max_length=200,blank=True,editable=False)
+    live_webhook_id = models.CharField(max_length=200,blank=True,editable=False)
+    test_account_id = models.CharField(max_length=200,blank=True,editable=False)
+    live_account_id = models.CharField(max_length=200,blank=True,editable=False)
     def __str__(self):return 'Stripe connection settings'
 
 class Donor(models.Model):

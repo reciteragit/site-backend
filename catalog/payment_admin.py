@@ -50,6 +50,8 @@ class StripeSettingsAdmin(admin.ModelAdmin):
         key,secret=credentials(obj)
         return f'{obj.mode.upper()} · key: {"configured" if key else "missing"} · webhook: {"configured" if secret else "missing"} · {"enabled" if ready(obj) else "inactive"}'
     def webhook_endpoint(self,obj):
+        if obj and getattr(obj,f'{obj.mode}_webhook_id',''):
+            return f'Automatically configured ({obj.mode.upper()}): https://site-backend-one.vercel.app/api/payments/stripe/webhook/ — no manual signing-secret entry is needed.'
         return 'https://site-backend-one.vercel.app/api/payments/stripe/webhook/ — Register checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed and checkout.session.expired in Stripe. Store the signing secret above.'
     @admin.action(description='Verify Stripe API connection (no charge)')
     def verify_connection(self,request,queryset):
