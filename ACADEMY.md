@@ -17,7 +17,10 @@ existing academy; this change implements native one-to-one class booking.
    account by an administrator; do not create duplicate published profiles.
 4. An administrator sets the classroom provider and private HTTPS meeting URL:
    Zoom (`zoom.us` / `zoom.com` and their subdomains), Google Meet
-   (`meet.google.com`), or Recitera LMS (`lms.recitera.com`). URLs must contain
+   (`meet.google.com`), or Recitera LMS (`lms.recitera.com`). New teaching profiles
+   default to `https://lms.recitera.com/`; migration 0003 applies that destination
+   to existing profiles once. Administrators can subsequently override it.
+   Zoom and Google Meet URLs must contain
    a class/room path. This configures links; it does not provision Zoom/Meet
    meetings or implement/host the separate Recitera LMS conferencing service.
 5. Approve the teaching profile **and publish its catalogue teacher**. Students

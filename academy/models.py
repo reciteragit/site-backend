@@ -20,8 +20,8 @@ class TeachingProfile(models.Model):
     teacher = models.OneToOneField('catalog.Teacher', on_delete=models.PROTECT, related_name='booking_profile')
     biography = models.TextField(blank=True)
     timezone = models.CharField(max_length=100, default='UTC')
-    meeting_url = models.URLField(max_length=1000, blank=True, help_text='Private HTTPS Zoom/Meet/classroom link. Shared only for confirmed bookings.')
-    meeting_provider = models.CharField(max_length=10, default='meet', choices=[('meet','Google Meet'),('zoom','Zoom'),('lms','Recitera LMS')])
+    meeting_url = models.URLField(max_length=1000, blank=True, default='https://lms.recitera.com/', help_text='HTTPS class destination. Shared only for confirmed bookings.')
+    meeting_provider = models.CharField(max_length=10, default='lms', choices=[('meet','Google Meet'),('zoom','Zoom'),('lms','Recitera LMS')])
     approved = models.BooleanField(default=False, help_text='Only staff can approve a teacher to accept paid bookings.')
     def __str__(self): return self.teacher.name
 

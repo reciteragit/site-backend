@@ -14,9 +14,13 @@ def valid_meeting(provider,url):
         parsed=urlsplit(url)
         port=parsed.port
     except ValueError:return False
-    if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password or port not in [None,443] or not parsed.path.strip('/'):
+    if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password or port not in [None,443]:
         return False
     host=parsed.hostname.lower()
+    if provider == 'lms' and host == 'lms.recitera.com':
+        return True
+    if not parsed.path.strip('/'):
+        return False
     return (provider=='meet' and host=='meet.google.com') or (provider=='zoom' and any(host==domain or host.endswith('.'+domain) for domain in ['zoom.us','zoom.com'])) or (provider=='lms' and host=='lms.recitera.com')
 
 

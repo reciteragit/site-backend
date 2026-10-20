@@ -35,7 +35,7 @@ def fixture():
     Profile.objects.create(user=student,timezone='Asia/Tehran')
     teacher_user=User.objects.create_user(username='teacher@example.com',email='teacher@example.com',password='strong-example-PASS9')
     teacher=Teacher.objects.create(slug='test-teacher',name='Test teacher',experience='5 years',languages=['English'],image='/assets/amin.jpg',profile_url='',price=25,currency='CAD')
-    teaching=TeachingProfile.objects.create(user=teacher_user,teacher=teacher,approved=True,timezone='America/Toronto',meeting_url='https://meet.google.com/abc-defg-hij')
+    teaching=TeachingProfile.objects.create(user=teacher_user,teacher=teacher,approved=True,timezone='America/Toronto',meeting_provider='meet',meeting_url='https://meet.google.com/abc-defg-hij')
     start=(timezone.now()+timedelta(days=3)).replace(second=0,microsecond=0)
     slot=Slot.objects.create(teacher=teaching,starts_at=start,ends_at=start+timedelta(minutes=30))
     config=StripeSettings.objects.create(enabled=True,mode='test',lessons_enabled=True,test_secret_ciphertext=encrypt('sk_test_fixture'),test_webhook_ciphertext=encrypt('whsec_fixture'))
@@ -83,9 +83,9 @@ class AcademyTests(TestCase):
         body={'name':'New teacher','experience':'2 years','languages':['Arabic'],'image':'/assets/amin.jpg','price':'30.00','timezone':'Asia/Tehran','approved':True,'meeting_url':'https://meet.google.com/fake'}
         r=self.api.post('/api/academy/teacher/profile/',body,format='json');self.assertEqual(r.status_code,200,r.data)
         p=TeachingProfile.objects.get(user=self.student)
-        self.assertFalse(p.approved);self.assertFalse(p.teacher.published);self.assertEqual(p.meeting_url,'')
+        self.assertFalse(p.approved);self.assertFalse(p.teacher.published);self.assertEqual(p.meeting_url,'https://lms.recitera.com/');self.assertEqual(p.meeting_provider,'lms')
     def test_only_allowed_meeting_providers_and_hosts(self):
-        for provider,url in [('zoom','https://us02web.zoom.us/j/123'),('meet','https://meet.google.com/abc-defg-hij'),('lms','https://lms.recitera.com/room/123')]:self.assertTrue(valid_meeting(provider,url))
+        for provider,url in [('zoom','https://us02web.zoom.us/j/123'),('meet','https://meet.google.com/abc-defg-hij'),('lms','https://lms.recitera.com/room/123'),('lms','https://lms.recitera.com/')]:self.assertTrue(valid_meeting(provider,url))
         for url in ['http://meet.google.com/a','https://meet.google.com.evil.test/a','https://user:pass@meet.google.com/a','https://meet.google.com:999/a','javascript:alert(1)','https://meet.google.com']:
             self.assertFalse(valid_meeting('meet',url))
     def test_dst_nonexistent_and_ambiguous_local_times_rejected(self):
