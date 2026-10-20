@@ -181,3 +181,7 @@ Atalla's original About me, Egypt, Arabic, 4+ years, teaching specialities and
 30 CAD single-class rate. The earlier six-profile snapshot/migration remain
 unchanged. Existing private scheduling configuration and all other teachers are
 preserved. Egypt is not used to guess or change the teacher's saved time zone.
+
+Google login and explicit account linking are documented in
+[GOOGLE_SIGN_IN.md](GOOGLE_SIGN_IN.md). Existing email/password users must sign in
+before connecting Google; same-email Google claims do not silently merge accounts.

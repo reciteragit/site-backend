@@ -91,3 +91,15 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display=['user','timezone']
     readonly_fields=['user','timezone']
     def has_add_permission(self,request):return False
+
+
+from .models import GoogleIdentity
+
+@admin.register(GoogleIdentity)
+class GoogleIdentityAdmin(admin.ModelAdmin):
+    list_display=['user','email','created_at']
+    search_fields=['user__email','email']
+    readonly_fields=[field.name for field in GoogleIdentity._meta.fields]
+    def has_add_permission(self,request):return False
+    def has_delete_permission(self,request,obj=None):
+        return bool(obj and obj.user.has_usable_password() and super().has_delete_permission(request,obj))

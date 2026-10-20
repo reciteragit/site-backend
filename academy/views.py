@@ -51,7 +51,7 @@ class AcademyView(APIView):
 def profile_data(user):
     profile,_=Profile.objects.get_or_create(user=user)
     teaching=TeachingProfile.objects.filter(user=user).select_related('teacher').first()
-    return {'id':user.pk,'email':user.email,'first_name':user.first_name,'last_name':user.last_name,'timezone':profile.timezone,'teacher':teacher_data(teaching,private=True) if teaching else None}
+    return {'google_connected':hasattr(user,'google_identity'),'has_password':user.has_usable_password(),'id':user.pk,'email':user.email,'first_name':user.first_name,'last_name':user.last_name,'timezone':profile.timezone,'teacher':teacher_data(teaching,private=True) if teaching else None}
 
 
 def teacher_data(profile,private=False):

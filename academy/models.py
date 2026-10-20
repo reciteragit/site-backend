@@ -88,3 +88,24 @@ class EmailDelivery(models.Model):
     last_error = models.CharField(max_length=100, blank=True)
     class Meta:
         constraints = [models.UniqueConstraint(fields=['booking','recipient'], name='academy_one_booking_email_per_recipient')]
+
+
+class GoogleIdentity(models.Model):
+    subject = models.CharField(max_length=255, unique=True, editable=False)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='google_identity')
+    email = models.EmailField(max_length=254, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class GoogleAuthorization(models.Model):
+    digest = models.CharField(max_length=64, primary_key=True, editable=False)
+    binding_digest = models.CharField(max_length=64, editable=False)
+    nonce_digest = models.CharField(max_length=64, editable=False)
+    verifier_ciphertext = models.TextField(editable=False)
+    redirect_uri = models.URLField(max_length=500)
+    next_path = models.CharField(max_length=300, default='/account')
+    timezone = models.CharField(max_length=100, default='UTC')
+    mode = models.CharField(max_length=5, choices=[('login','Login'),('link','Link')])
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)

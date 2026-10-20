@@ -56,3 +56,8 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() == "true"
 EMAIL_TIMEOUT = 5
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "info@recitera.com")
+
+# Google OAuth authorization-code flow. Keys are backend-only.
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '').strip()
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '').strip()
+GOOGLE_REDIRECT_URIS = csv('GOOGLE_REDIRECT_URIS', 'https://www.recitera.com/api/auth/google/callback,https://site-pearl-one-38.vercel.app/api/auth/google/callback' + (',http://localhost:3000/api/auth/google/callback' if DEBUG else ''))
