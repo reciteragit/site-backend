@@ -250,7 +250,7 @@ class MyAvailability(AcademyView):
 class MySlots(AcademyView):
     def get(self,request):
         expire_holds();p=my_teacher(request.user)
-        rows=Slot.objects.filter(teacher=p,starts_at__gt=timezone.now()-timedelta(days=1)).prefetch_related('bookings')[:5000]
+        rows=Slot.objects.filter(teacher=p,active=True,starts_at__gt=timezone.now()-timedelta(days=1)).prefetch_related('bookings')[:5000]
         return Response([{'id':str(s.id),'starts_at':s.starts_at.isoformat(),'ends_at':s.ends_at.isoformat(),'active':s.active,'status':next((b.status for b in s.bookings.all() if b.status in ['held','confirmed']), 'available' if s.active else 'removed')} for s in rows])
     def post(self,request):
         p=my_teacher(request.user)

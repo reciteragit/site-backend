@@ -52,6 +52,15 @@ class WeeklyAvailabilityTests(TestCase):
         self.assertEqual(Slot.objects.filter(active=True, starts_at=datetime(2026,10,26,19,tzinfo=utc.utc)).count(), 1)
         self.assertFalse(Slot.objects.filter(schedule__isnull=False,active=True,starts_at__lt=reserved.ends_at,ends_at__gt=reserved.starts_at).exclude(pk=reserved.pk).exists())
 
+    def test_clearing_weekly_plan_hides_removed_generated_times(self):
+        self.save(self.data())
+        empty = self.data()
+        for day in empty['weekly']: day['ranges'] = []
+        result = self.save(empty)
+        self.assertEqual(result['removed'], 4)
+        self.assertEqual(self.api.get('/api/academy/teacher/slots/').data, [])
+        self.assertEqual(APIClient().get('/api/academy/teachers/schedule-teacher/availability/').data['dates'], [])
+
     def test_overlapping_manual_class_is_skipped_without_deleting_it(self):
         manual = Slot.objects.create(teacher=self.profile, starts_at=datetime(2026,10,26,18,45,tzinfo=utc.utc), ends_at=datetime(2026,10,26,19,15,tzinfo=utc.utc))
         result = self.save(self.data()); self.assertEqual(result['skipped_overlap'], 2)
