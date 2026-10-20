@@ -150,3 +150,26 @@ RECITERA_EMAIL_TEST_RECIPIENT for an explicitly authorized one-off deployment;
 remove that variable immediately afterwards. RESEND_DOMAIN_ID allows direct
 domain-status reads. Never put a literal test recipient in the permanent build
 command or cron. Without the flag/temporary variable, domain checks do not send.
+
+## Imported public teacher profiles (20 October 2026)
+
+The user supplied six saved public academy HTML pages. Their curated public data
+is retained in `catalog/teacher_profiles_20261020.json` with source filename, URL
+and SHA-256; raw HTML/scripts/login overlays are never embedded or executed.
+`catalog` migration 0010 updates existing matched slugs once; fresh installations
+use the updated seed. Keep the dated snapshot immutable because the migration
+references it. Later admin edits survive normal seed_catalog builds.
+
+Imported fields: full public name, country, teaching specialities and About me.
+Only published single-session prices update: Fatima 20 CAD, Selsebil 30 CAD and
+Amir Hossein 30 CAD. Pages with no course results do not provide a new rate, so
+Amin, Abozar and Setayesh keep their existing prices. Country is not interpreted as
+an IANA time zone. Existing user links, approval, classroom URLs, reservations,
+paid order amounts and schedules are preserved. No account or available class is
+invented. Mohammed Atalla had no corresponding uploaded page and is unchanged.
+
+Public biography lives on catalogue Teacher so it displays before a teacher
+account is linked. A linked TeachingProfile biography may override it; the one-off
+import updates both for the six provided profiles. Admin/teacher editing remains
+available. Saved HTML embedded-video subdocuments were not supplied, so no new
+video URL or booking package implementation is inferred from their filenames.

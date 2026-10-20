@@ -4,7 +4,7 @@ from .models import Teacher, Course
 class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teacher
-        fields = ("slug", "name", "experience", "languages", "image", "profile_url", "price", "currency", "sort_order")
+        fields = ("slug", "name", "biography", "based_in", "specialities", "experience", "languages", "image", "profile_url", "price", "currency", "sort_order")
 
 class CourseSerializer(serializers.ModelSerializer):
     teacher_slug = serializers.SlugRelatedField(source="teacher", slug_field="slug", read_only=True)

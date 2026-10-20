@@ -65,6 +65,9 @@ class NewsletterSubscriber(models.Model):
 class Teacher(models.Model):
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=120)
+    biography = models.TextField(blank=True)
+    based_in = models.CharField(max_length=100, blank=True)
+    specialities = models.JSONField(default=list, blank=True)
     experience = models.CharField(max_length=80)
     languages = models.JSONField(default=list, validators=[validate_languages])
     image = models.CharField(max_length=500, help_text="Frontend /assets/ path or public HTTPS image URL")

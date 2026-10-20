@@ -56,7 +56,7 @@ def profile_data(user):
 
 def teacher_data(profile,private=False):
     t=profile.teacher
-    data={'slug':t.slug,'name':t.name,'biography':profile.biography,'experience':t.experience,'languages':t.languages,'image':t.image,'price':str(t.price),'currency':t.currency,'timezone':profile.timezone,'approved':profile.approved,'published':t.published}
+    data={'slug':t.slug,'name':t.name,'biography':profile.biography or t.biography,'based_in':t.based_in,'specialities':t.specialities,'experience':t.experience,'languages':t.languages,'image':t.image,'price':str(t.price),'currency':t.currency,'timezone':profile.timezone,'approved':profile.approved,'published':t.published}
     if private: data.update(meeting_provider=profile.meeting_provider,meeting_configured=bool(profile.meeting_url),meeting_url=profile.meeting_url)
     return data
 
@@ -142,7 +142,7 @@ class PublicTeacher(AcademyView):
         if not t:raise NotFound('Teacher not found.')
         profile=TeachingProfile.objects.filter(teacher=t,user__is_active=True).first()
         if profile:data=teacher_data(profile)
-        else:data={'slug':t.slug,'name':t.name,'experience':t.experience,'languages':t.languages,'image':t.image,'price':str(t.price),'currency':t.currency,'biography':'','timezone':'UTC','approved':False,'published':True}
+        else:data={'slug':t.slug,'name':t.name,'experience':t.experience,'languages':t.languages,'image':t.image,'price':str(t.price),'currency':t.currency,'biography':t.biography,'based_in':t.based_in,'specialities':t.specialities,'timezone':'','approved':False,'published':True}
         data['booking_enabled']=bool(profile and profile.approved and valid_meeting(profile.meeting_provider,profile.meeting_url))
         config=StripeSettings.objects.first()
         data['payment_ready']=bool(config and config.lessons_enabled and ready(config))
@@ -161,6 +161,8 @@ class PublicSlots(AcademyView):
 class TeacherEditSerializer(serializers.Serializer):
     name=serializers.CharField(max_length=120)
     biography=serializers.CharField(max_length=10000,allow_blank=True,default='')
+    based_in=serializers.CharField(max_length=100,allow_blank=True,required=False)
+    specialities=serializers.ListField(child=serializers.CharField(max_length=150),max_length=12,required=False)
     experience=serializers.CharField(max_length=80)
     languages=serializers.ListField(child=serializers.CharField(max_length=50),min_length=1,max_length=12)
     image=serializers.CharField(max_length=500)

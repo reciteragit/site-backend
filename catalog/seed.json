@@ -2,7 +2,7 @@
   "teachers": [
     {
       "slug": "selsebil-benelhaj-sghaier",
-      "name": "Selsebil",
+      "name": "Selsebil Benelhaj Sghaier",
       "experience": "5+ years",
       "languages": [
         "English",
@@ -11,9 +11,16 @@
       ],
       "image": "/assets/selsebil.jpg",
       "profile_url": "https://academy.recitera.com/selsebil-benelhaj-sghaier",
-      "price": "30",
+      "price": "30.00",
       "currency": "CAD",
-      "sort_order": 0
+      "sort_order": 0,
+      "based_in": "France",
+      "specialities": [
+        "Tajweed",
+        "Memorization",
+        "Teaching Kids"
+      ],
+      "biography": "Passionate about teaching the Quran and supporting students on their learning journey\nSpecialized in Tajweed, Hifz, and personalized Quran instruction\nHelps students strengthen their recitation skills\nEncourages consistency and discipline in Quran memorization\nProvides individualized guidance based on each student's needs\nFocuses on building confidence and steady progress\nAims to foster a meaningful and lasting connection with the Quran"
     },
     {
       "slug": "mohammed-atalla",
@@ -30,7 +37,7 @@
     },
     {
       "slug": "abozar-profile",
-      "name": "Abozar",
+      "name": "Abozar Mehr",
       "experience": "16+ years",
       "languages": [
         "English"
@@ -39,37 +46,56 @@
       "profile_url": "https://academy.recitera.com/abozar-profile",
       "price": "40",
       "currency": "CAD",
-      "sort_order": 2
+      "sort_order": 2,
+      "based_in": "Canada",
+      "specialities": [
+        "Voice & Melody",
+        "Tajweed"
+      ],
+      "biography": "Over 25 years of dedicated Quran study\nMore than 15 years of teaching experience\nSpecialized in Tajweed, Maqamat, and advanced voice techniques\nHelps students recite the Quran with both accuracy and beauty\nUses a structured and effective teaching approach\nSupports students in improving their recitation skills and confidence\nCombines precision, melody, and spiritual depth in every lesson\nEncourages a deeper connection with the Quran\nCreates an inspiring and engaging learning experience\nSuitable for learners seeking to enhance both technical recitation and vocal performance"
     },
     {
       "slug": "amir-hossein-rezaaee",
-      "name": "Amir Hossein",
+      "name": "Amir Hossein Rezaaee",
       "experience": "1+ years",
       "languages": [
         "English"
       ],
       "image": "/assets/amir.jpg",
       "profile_url": "https://academy.recitera.com/amir-hossein-rezaaee",
-      "price": "30",
+      "price": "30.00",
       "currency": "CAD",
-      "sort_order": 3
+      "sort_order": 3,
+      "based_in": "Canada",
+      "specialities": [
+        "Tajweed"
+      ],
+      "biography": "Believes Quran learning is a lifelong journey of growth, reflection, and spiritual connection\nProvides personalized guidance tailored to each student's needs\nCreates a supportive and encouraging learning environment\nHelps students strengthen their Tajweed and recitation skills\nEncourages a deeper understanding of the Quran\nBuilds confidence through consistent practice and progress\nFocuses on steady, step-by-step development in Quran learning\nAims to foster a meaningful and lasting connection with the Quran"
     },
     {
       "slug": "fatima-abdulkazem",
-      "name": "Fatima",
+      "name": "Fatima Abdulkazem",
       "experience": "10+ years",
       "languages": [
         "English"
       ],
       "image": "/assets/fatima.png",
       "profile_url": "https://academy.recitera.com/fatima-abdulkazem",
-      "price": "30",
+      "price": "20.00",
       "currency": "CAD",
-      "sort_order": 4
+      "sort_order": 4,
+      "based_in": "USA",
+      "specialities": [
+        "Tajweed",
+        "Voice & Melody (Tarteel / Maqamat)",
+        "Memorization",
+        "Teaching Kids"
+      ],
+      "biography": "Over 10 years of experience in Quran education\nHelps students recite, memorize, and understand the Quran with confidence\nSpecialized in Tajweed and Hifz\nIncorporates Tarteel and Maqamat to enhance recitation skills\nCreates a supportive and encouraging learning environment\nFocuses on steady progress and continuous improvement\nAims to build a lasting connection with the Quran through meaningful learning experiences"
     },
     {
       "slug": "setayesh-zahra-rezaaee",
-      "name": "Setayesh",
+      "name": "Setayesh Zahra Rezaaee",
       "experience": "1+ years",
       "languages": [
         "English"
@@ -78,11 +104,16 @@
       "profile_url": "https://academy.recitera.com/setayesh-zahra-rezaaee",
       "price": "25",
       "currency": "CAD",
-      "sort_order": 5
+      "sort_order": 5,
+      "based_in": "Canada",
+      "specialities": [
+        "Teaching Kids"
+      ],
+      "biography": "Passionate about helping children build a positive and meaningful relationship with the Quran\nFocuses on early childhood Quran education\nUses patient guidance and interactive teaching methods\nCreates a supportive and engaging learning environment\nMakes learning the Quran enjoyable and accessible\nHelps students develop confidence and good character\nEncourages consistent growth and active participation\nInspires a lifelong love of learning and connection with the Quran\n\nI am passionate about helping children build a positive and meaningful relationship with the Quran from an early age. Through patient guidance, interactive lessons, and a supportive environment, I strive to make learning enjoyable while nurturing confidence, good character, and a lifelong love for learning."
     },
     {
       "slug": "amin-monemian",
-      "name": "Amin",
+      "name": "Amin Monemian",
       "experience": "16+ years",
       "languages": [
         "English"
@@ -91,7 +122,14 @@
       "profile_url": "https://academy.recitera.com/amin-monemian",
       "price": "30",
       "currency": "CAD",
-      "sort_order": 6
+      "sort_order": 6,
+      "based_in": "Canada",
+      "specialities": [
+        "Voice & Melody",
+        "Tajweed",
+        "Teaching Kids"
+      ],
+      "biography": "More than 16 years of Quran teaching experience\nSpecialized in Tajweed, Hifz, and children's education\nCreates a positive and encouraging learning environment\nHelps students improve Quran recitation skills\nSupports effective memorization (Hifz) development\nFocuses on building a lasting connection with the Quran\nAdapts learning to each student's individual pace and needs"
     }
   ],
   "courses": [
