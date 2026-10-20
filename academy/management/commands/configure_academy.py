@@ -1,11 +1,13 @@
 import os
 from django.core.management.base import BaseCommand, CommandError
+from django.core.management import call_command
 from catalog.payment_models import StripeSettings
 from catalog.stripe_gateway import ready
 
 class Command(BaseCommand):
     help='Enable reserved class checkout only when explicitly configured and Stripe is ready.'
     def handle(self,*args,**options):
+        call_command('import_teacher_accounts', stdout=self.stdout)
         if os.getenv('ACADEMY_PAYMENTS_ENABLED','false').lower()!='true':
             self.stdout.write('Academy payment setup not requested; existing settings preserved.');return
         config=StripeSettings.objects.first()
