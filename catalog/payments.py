@@ -31,6 +31,7 @@ class CheckoutSerializer(serializers.Serializer):
 
 def price(data,config):
     purpose,ref=data['purpose'],data['reference']
+    if purpose=='lesson':raise serializers.ValidationError('Choose an available class time and use the academy shopping cart to book a lesson.')
     if purpose=='donation':
         if ref not in PATHWAYS or 'amount' not in data:raise serializers.ValidationError('Choose a donation pathway and valid amount.')
         return data['amount'],PATHWAYS[ref]
@@ -112,6 +113,14 @@ def stripe_webhook(request):
     if event is None:return JsonResponse({'error':'Invalid signature.'},status=400)
     accepted=['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed','checkout.session.expired']
     if event['type'] not in accepted:return JsonResponse({'received':True})
+    from academy.services import process_event
+    booking_result=process_event(event)
+    if booking_result is not None:
+        payload,status=booking_result
+        if status==200:
+            from academy.notifications import flush_mail
+            flush_mail(limit=20,order_id=event['data']['object'].get('metadata',{}).get('academy_order_id'))
+        return JsonResponse(payload,status=status)
     obj=event['data']['object'];order_id=obj.get('metadata',{}).get('order_id')
     if not order_id:return JsonResponse({'received':True})
     try:

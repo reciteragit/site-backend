@@ -71,3 +71,6 @@ The backend accepts `DATABASE_URL` or, when it is unset, Vercel’s injected `PO
 The existing `catalog` payment models and donor form are used. Set `STRIPE_SECRET_KEY` securely on the backend and `STRIPE_AUTOCONFIGURE=true`; the Vercel build invokes `configure_stripe` after migrations. It verifies account access, provisions a donation webhook at `/api/payments/stripe/webhook/`, and saves keys/signing secrets encrypted in the existing Stripe settings. Subsequent builds reuse the managed endpoint. Optional `STRIPE_FRONTEND_ORIGIN` and `STRIPE_WEBHOOK_URL` select public HTTPS destinations. Missing configuration is skipped without changing saved admin settings.
 
 Only donation payments are enabled automatically. Existing other-section flags and live credentials are preserved; installing test credentials does not downgrade an active live account. Live-mode activation requires Stripe charges to be enabled. Bank information, tax status and business verification are never invented. `STRIPE_SECRET_KEY` must never appear in frontend variables, Git or logs. Mode-specific environment fallbacks and the existing write-only admin settings remain supported.
+
+Native class accounts, teacher availability, reserved checkout, timezone conversion,
+and booking email operations are documented in [ACADEMY.md](ACADEMY.md).

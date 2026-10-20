@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "django",
-  "buildCommand": "python manage.py migrate --noinput && python manage.py seed_catalog && python manage.py bootstrap_admin && python manage.py configure_stripe"
+  "buildCommand": "python manage.py migrate --noinput && python manage.py seed_catalog && python manage.py bootstrap_admin && python manage.py configure_stripe && python manage.py configure_academy",
+  "crons": [
+    {
+      "path": "/api/academy/internal/send-mail/",
+      "schedule": "0 8 * * *"
+    }
+  ]
 }

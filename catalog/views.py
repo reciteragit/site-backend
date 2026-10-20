@@ -35,6 +35,10 @@ def health(request):
         TeacherAttachment.objects.exists()
         PaymentOrder.objects.exists()
         StripeSettings.objects.exists()
+        from academy.models import Booking, TeachingProfile, EmailDelivery
+        Booking.objects.exists()
+        TeachingProfile.objects.exists()
+        EmailDelivery.objects.exists()
     except DatabaseError:
         return JsonResponse({"status": "unavailable"}, status=503)
     return JsonResponse({"status": "ok", "database": connection.vendor})
