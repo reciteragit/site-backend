@@ -1,4 +1,5 @@
 import json
+import os
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from django.conf import settings
@@ -12,9 +13,9 @@ class Command(BaseCommand):
     help='Check the Resend sender domain, optionally request DNS verification; never prints credentials.'
     def add_arguments(self,parser):
         parser.add_argument('--domain',default='recitera.com')
-        parser.add_argument('--domain-id',default='')
+        parser.add_argument('--domain-id',default=os.getenv('RESEND_DOMAIN_ID',''))
         parser.add_argument('--verify',action='store_true')
-        parser.add_argument('--test-recipient',default='',help='Send a test only to an explicitly authorized recipient.')
+        parser.add_argument('--test-recipient',default=os.getenv('RECITERA_EMAIL_TEST_RECIPIENT',''),help='Send a test only to an explicitly authorized recipient.')
     def handle(self,*args,**options):
         key=settings.RESEND_API_KEY
         if not key:

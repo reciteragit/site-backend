@@ -145,5 +145,8 @@ checks the Resend domain without printing credentials and never sends a test by
 default. A sending-only API key may not allow domain metadata reads; a successful
 provider-accepted send still demonstrates the configured sender is permitted.
 Pass `--test-recipient` only after the recipient authorizes a test, and only for a
-one-off operation/deployment override: never put a test recipient in the permanent
-build command or cron.
+one-off operation. An operator may alternatively set temporary
+RECITERA_EMAIL_TEST_RECIPIENT for an explicitly authorized one-off deployment;
+remove that variable immediately afterwards. RESEND_DOMAIN_ID allows direct
+domain-status reads. Never put a literal test recipient in the permanent build
+command or cron. Without the flag/temporary variable, domain checks do not send.
