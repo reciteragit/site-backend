@@ -139,3 +139,11 @@ suite. Do not run tests against production. Frontend: `npm run typecheck` and
 private calendar download, unavailable-slot removal, different IANA zones and
 teacher/student ownership. No real payment, external meeting or production email
 is required or claimed by those fixture tests.
+
+Operator-only domain verification: `python manage.py check_email_domain --verify`
+checks the Resend domain without printing credentials and never sends a test by
+default. A sending-only API key may not allow domain metadata reads; a successful
+provider-accepted send still demonstrates the configured sender is permitted.
+Pass `--test-recipient` only after the recipient authorizes a test, and only for a
+one-off operation/deployment override: never put a test recipient in the permanent
+build command or cron.
