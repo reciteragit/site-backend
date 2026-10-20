@@ -26,12 +26,23 @@ class TeachingProfile(models.Model):
     def __str__(self): return self.teacher.name
 
 
+class AvailabilitySchedule(models.Model):
+    teacher = models.OneToOneField(TeachingProfile, on_delete=models.CASCADE, related_name='availability_schedule')
+    timezone = models.CharField(max_length=100)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    duration_minutes = models.PositiveSmallIntegerField(default=30)
+    weekly = models.JSONField(default=list)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class Slot(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     teacher = models.ForeignKey(TeachingProfile, on_delete=models.PROTECT, related_name='slots')
     starts_at = models.DateTimeField(db_index=True)
     ends_at = models.DateTimeField()
     active = models.BooleanField(default=True)
+    schedule = models.ForeignKey(AvailabilitySchedule, null=True, blank=True, on_delete=models.SET_NULL, related_name='slots')
     class Meta:
         ordering = ['starts_at']
         constraints = [models.CheckConstraint(condition=Q(ends_at__gt=models.F('starts_at')), name='academy_positive_slot_duration')]

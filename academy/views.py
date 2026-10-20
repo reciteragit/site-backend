@@ -31,7 +31,7 @@ class AcademyWriteThrottle(AnonRateThrottle):
         identity=str(request.user.pk) if request.user.is_authenticated else self.get_ident(request)
         return self.cache_format % {"scope":self.scope,"ident":identity}
 from .authentication import AcademyAuthentication, issue_token
-from .models import Profile, TeachingProfile, Slot, CartItem, Order, Booking, AccessToken, EmailDelivery
+from .models import AvailabilitySchedule, Profile, TeachingProfile, Slot, CartItem, Order, Booking, AccessToken, EmailDelivery
 from .timezones import zone, local_time
 from .services import available_queryset, expire_holds, lock_teachers, valid_meeting
 from .notifications import calendar
@@ -150,12 +150,40 @@ class PublicTeacher(AcademyView):
         return Response(data)
 
 
+def public_teacher_slots(slug):
+    profile = TeachingProfile.objects.filter(teacher__slug=slug, teacher__published=True, approved=True, user__is_active=True).first()
+    if not profile or not valid_meeting(profile.meeting_provider, profile.meeting_url):
+        return Slot.objects.none()
+    return available_queryset().filter(teacher=profile, starts_at__lt=timezone.now()+timedelta(days=180))
+
+
+class PublicDates(AcademyView):
+    permission_classes=[AllowAny];authentication_classes=[]
+    def get(self, request, slug):
+        expire_holds()
+        tz = zone(request.query_params.get('timezone', 'UTC'))
+        dates = sorted({start.astimezone(tz).date().isoformat() for start in public_teacher_slots(slug).values_list('starts_at', flat=True)})
+        return Response({'dates': dates})
+
+
 class PublicSlots(AcademyView):
     permission_classes=[AllowAny];authentication_classes=[]
     def get(self,request,slug):
         expire_holds()
-        rows=available_queryset().filter(teacher__teacher__slug=slug,starts_at__lt=timezone.now()+timedelta(days=180)).select_related('teacher')[:500]
-        return Response([{'id':str(s.id),'starts_at':s.starts_at.isoformat(),'ends_at':s.ends_at.isoformat()} for s in rows if valid_meeting(s.teacher.meeting_provider,s.teacher.meeting_url)])
+        rows = public_teacher_slots(slug)
+        if request.query_params.get('date'):
+            class Query(serializers.Serializer):
+                date = serializers.DateField()
+                timezone = serializers.CharField(max_length=100, default='UTC')
+            query = Query(data=request.query_params); query.is_valid(raise_exception=True)
+            day = query.validated_data['date']; tz = zone(query.validated_data['timezone'])
+            today = timezone.now().astimezone(tz).date()
+            if day < today - timedelta(days=1) or day > today + timedelta(days=181):
+                return Response([])
+            start = datetime.combine(day, datetime.min.time(), tzinfo=tz)
+            end = datetime.combine(day+timedelta(days=1), datetime.min.time(), tzinfo=tz)
+            rows = rows.filter(starts_at__gte=start, starts_at__lt=end)
+        return Response([{'id':str(s.id),'starts_at':s.starts_at.isoformat(),'ends_at':s.ends_at.isoformat()} for s in rows[:500]])
 
 
 class TeacherEditSerializer(serializers.Serializer):
@@ -204,10 +232,25 @@ def my_teacher(user):
     return p
 
 
+class MyAvailability(AcademyView):
+    throttle_classes=[AcademyWriteThrottle]
+    def get(self, request):
+        from .availability import schedule_data
+        profile = my_teacher(request.user)
+        schedule = AvailabilitySchedule.objects.filter(teacher=profile).first()
+        return Response({'schedule': schedule_data(schedule) if schedule else None})
+
+    def post(self, request):
+        from .availability import ScheduleInput, save_schedule
+        profile = my_teacher(request.user)
+        serializer = ScheduleInput(data=request.data); serializer.is_valid(raise_exception=True)
+        return Response(save_schedule(profile, dict(serializer.validated_data)))
+
+
 class MySlots(AcademyView):
     def get(self,request):
         expire_holds();p=my_teacher(request.user)
-        rows=Slot.objects.filter(teacher=p,starts_at__gt=timezone.now()-timedelta(days=1)).prefetch_related('bookings')[:500]
+        rows=Slot.objects.filter(teacher=p,starts_at__gt=timezone.now()-timedelta(days=1)).prefetch_related('bookings')[:5000]
         return Response([{'id':str(s.id),'starts_at':s.starts_at.isoformat(),'ends_at':s.ends_at.isoformat(),'active':s.active,'status':next((b.status for b in s.bookings.all() if b.status in ['held','confirmed']), 'available' if s.active else 'removed')} for s in rows])
     def post(self,request):
         p=my_teacher(request.user)

@@ -188,3 +188,25 @@ preserved. Egypt is not used to guess or change the teacher's saved time zone.
 Google login and explicit account linking are documented in
 [GOOGLE_SIGN_IN.md](GOOGLE_SIGN_IN.md). Existing email/password users must sign in
 before connecting Google; same-email Google claims do not silently merge accounts.
+
+## Weekly availability
+
+Teacher dashboard now saves a finite weekly plan (`teacher/availability`): IANA
+zone, inclusive start/end dates, 15–180 minute classes and up to six time ranges
+per weekday (Monday=0). The date range must be within the next 180 days; a plan
+may generate at most 3,000 full classes. A short remainder is not bookable.
+Each occurrence is converted independently from local wall time to UTC, so a
+weekly 19:30 class stays at 19:30 after DST. Missing/ambiguous times and classes
+crossing a clock change are skipped and reported.
+
+Saving holds the same teacher row lock as checkout and manual slot creation.
+It replaces only unreserved generated slots, retains unchanged slot IDs, and
+preserves manual slots, held/confirmed bookings and their notification snapshots.
+Conflicts with preserved slots are skipped and counted. An empty weekly plan
+removes its unreserved generated availability. Plans end on their chosen end date;
+teachers extend the range and save again to publish more weeks.
+
+Students fetch `teachers/<slug>/availability?timezone=<IANA>` for available local
+dates, then `teachers/<slug>/slots?date=YYYY-MM-DD&timezone=<IANA>` for that day's
+compact slots. These endpoints expose neither classroom links nor identities.
+The legacy slots query without a date remains supported.
