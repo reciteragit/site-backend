@@ -72,7 +72,24 @@ this authenticated cart flow with explicit time slots. Donations are unchanged.
 
 ## Email setup and retries
 
-Production uses SMTP; configure the actual provider in secure Vercel variables:
+Recommended on Vercel: install the Resend integration from
+https://vercel.com/marketplace/resend and connect it to `site-backend`.
+The integration injects `RESEND_API_KEY`; Django automatically selects
+`academy.email_backend.ResendBackend` when this key exists, unless EMAIL_BACKEND
+is explicitly overridden. The backend calls Resend over verified HTTPS, attaches
+base64 ICS data and uses a stable per-content idempotency key for retries.
+The existing durable outbox/retry paths are unchanged. Sender acceptance is tracked
+as sent; actual inbox delivery/bounce tracking requires the provider dashboard.
+
+Verify `recitera.com` in Resend Domains by adding its exact DNS records in your DNS
+provider. Keep `DEFAULT_FROM_EMAIL=info@recitera.com`. Do not use Resend's onboarding
+sender for customer email, impersonate an unverified domain or replace existing MX
+records for the root domain. A Gmail address can be used to sign into Resend; this
+does not change the verified sender or create an inbox at info@recitera.com.
+Resend sends transactional email; receiving messages at that address requires a
+separate mailbox/forwarding service.
+
+Alternative: production can also use SMTP. Configure:
 
 - `DEFAULT_FROM_EMAIL=info@recitera.com`
 - `EMAIL_HOST`, `EMAIL_PORT` (usually 587), `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`
@@ -83,6 +100,9 @@ Verify the sender/domain and SPF/DKIM with the provider. Never commit credential
 Use a transactional-capable provider that accepts SMTP from Vercel. Real inbox
 arrival needs the actual provider; local-memory mail success proves message
 composition/queueing only.
+
+If neither RESEND_API_KEY nor SMTP is configured, confirmations remain queued.
+No real send is claimed until the provider accepts the verified sender.
 
 Each confirmed class creates separate durable email deliveries for student and
 teacher, including time, private link and ICS attachment. Webhooks attempt immediate

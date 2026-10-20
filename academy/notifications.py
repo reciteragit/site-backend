@@ -33,7 +33,7 @@ def deliver(delivery_id):
     with transaction.atomic():
         delivery=EmailDelivery.objects.select_for_update().select_related('booking__slot','booking__order').get(pk=delivery_id)
         if delivery.sent_at or (delivery.leased_until and delivery.leased_until>timezone.now()) or delivery.booking.status!='confirmed': return False
-        if not settings.DEFAULT_FROM_EMAIL or (settings.EMAIL_BACKEND=='django.core.mail.backends.smtp.EmailBackend' and not settings.EMAIL_HOST):
+        if not settings.DEFAULT_FROM_EMAIL or (settings.EMAIL_BACKEND=='django.core.mail.backends.smtp.EmailBackend' and not settings.EMAIL_HOST) or (settings.EMAIL_BACKEND=='academy.email_backend.ResendBackend' and not settings.RESEND_API_KEY):
             delivery.last_error='Email service is not configured';delivery.save(update_fields=['last_error']);return False
         delivery.leased_until=timezone.now()+timedelta(minutes=2)
         delivery.attempts+=1;delivery.save(update_fields=['leased_until','attempts'])
