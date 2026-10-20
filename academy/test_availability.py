@@ -57,6 +57,13 @@ class WeeklyAvailabilityTests(TestCase):
         result = self.save(self.data()); self.assertEqual(result['skipped_overlap'], 2)
         manual.refresh_from_db(); self.assertTrue(manual.active)
 
+    def test_ongoing_class_blocks_future_overlapping_schedule_slots(self):
+        manual = Slot.objects.create(teacher=self.profile, starts_at=NOW-timedelta(minutes=10), ends_at=NOW+timedelta(minutes=170))
+        result = self.save(self.data(start='2026-10-20',end='2026-10-20',tz='UTC',day=1,begin='13:30',finish='15:30'))
+        self.assertEqual(result['skipped_overlap'],3)
+        self.assertEqual(result['created'],1)
+        manual.refresh_from_db();self.assertTrue(manual.active)
+
     def test_dst_missing_times_are_reported_and_not_shifted(self):
         # Spring-forward gap in Paris on Sunday 28 March 2027, within 180 days.
         result = self.save(self.data(start='2027-03-28', end='2027-03-28', day=6, begin='01:30', finish='04:00'))

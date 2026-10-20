@@ -78,9 +78,9 @@ def save_schedule(profile, data):
     with transaction.atomic():
         profile = TeachingProfile.objects.select_for_update().get(pk=profile.pk)
         schedule, _ = AvailabilitySchedule.objects.get_or_create(teacher=profile, defaults=data)
-        existing = list(Slot.objects.filter(teacher=profile, starts_at__gt=now).prefetch_related('bookings'))
+        existing = list(Slot.objects.filter(teacher=profile, ends_at__gt=now).prefetch_related('bookings'))
         protected = [s for s in existing if any(b.status in ['held', 'confirmed'] for b in s.bookings.all())]
-        manual = [s for s in existing if s.active and s.schedule_id != schedule.pk]
+        manual = [s for s in existing if s.active and (s.schedule_id != schedule.pk or s.starts_at <= now)]
         blockers = {s.pk: s for s in protected + manual}.values()
         allowed, skipped_overlap = set(), 0
         for start, end in desired:
@@ -88,7 +88,7 @@ def save_schedule(profile, data):
                 skipped_overlap += 1
             else:
                 allowed.add((start, end))
-        free = [s for s in existing if s.schedule_id == schedule.pk and s.pk not in {p.pk for p in protected}]
+        free = [s for s in existing if s.schedule_id == schedule.pk and s.starts_at > now and s.pk not in {p.pk for p in protected}]
         keep = {}
         for s in free:
             key = (s.starts_at, s.ends_at)
