@@ -24,16 +24,24 @@
     },
     {
       "slug": "mohammed-atalla",
-      "name": "Mohammed",
+      "name": "Mohammed Atalla",
       "experience": "4+ years",
       "languages": [
         "Arabic"
       ],
       "image": "/assets/mohammed.jpg",
       "profile_url": "https://academy.recitera.com/mohammed-atalla",
-      "price": "30",
+      "price": "30.00",
       "currency": "CAD",
-      "sort_order": 1
+      "sort_order": 1,
+      "based_in": "Egypt",
+      "specialities": [
+        "Voice & Melody",
+        "Tajweed",
+        "Teaching Kids",
+        "Memorization"
+      ],
+      "biography": "Passionate about making Quran learning engaging and inspiring\nExperienced in teaching students of all ages\nCombines Tajweed, Hifz, and Maqamat in lessons\nUses interactive teaching methods to enhance learning\nHelps students improve their recitation skills\nSupports stronger memorization and retention\nCreates a meaningful and enjoyable learning experience\nEncourages steady progress and self-confidence"
     },
     {
       "slug": "abozar-profile",

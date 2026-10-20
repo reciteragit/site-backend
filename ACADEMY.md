@@ -173,3 +173,11 @@ account is linked. A linked TeachingProfile biography may override it; the one-o
 import updates both for the six provided profiles. Admin/teacher editing remains
 available. Saved HTML embedded-video subdocuments were not supplied, so no new
 video URL or booking package implementation is inferred from their filenames.
+
+
+Follow-up: the user subsequently supplied Mohammed atalla.html. The immutable
+`catalog/mohammed_profile_20261020.json` snapshot and migration 0011 add Mohammed
+Atalla's original About me, Egypt, Arabic, 4+ years, teaching specialities and
+30 CAD single-class rate. The earlier six-profile snapshot/migration remain
+unchanged. Existing private scheduling configuration and all other teachers are
+preserved. Egypt is not used to guess or change the teacher's saved time zone.
