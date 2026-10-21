@@ -160,6 +160,27 @@
         "Teaching Kids"
       ],
       "biography": "Hala Kurdi is a Quran teacher with 12 years of teaching experience.\nShe teaches Tajweed, Quran memorization (Hifz), and children in English and Arabic.\nShe welcomes female students of all ages and boys aged 10 and under.\nShe prefers evening lessons, four days a week."
+    },
+    {
+      "slug": "ahmed-ayman-elshazly",
+      "name": "Ahmed Ayman Elshazly",
+      "experience": "5 years",
+      "languages": [
+        "Arabic"
+      ],
+      "image": "/assets/ahmed-ayman-elshazly.png",
+      "profile_url": "https://www.recitera.com/teachers/ahmed-ayman-elshazly",
+      "price": "30.00",
+      "currency": "CAD",
+      "sort_order": 8,
+      "published": true,
+      "based_in": "Egypt",
+      "specialities": [
+        "Tajweed",
+        "Memorization",
+        "Teaching Kids"
+      ],
+      "biography": "Ahmed Ayman Elshazly is a Quran teacher with 5 years of teaching experience.\nAhmed teaches Arabic-speaking students Quran recitation, Tajweed, and memorization (Hifz), including children.\nTeaching preferences include male students, as well as boys and girls.\nPreferred availability is during the day and evening on Fridays and Saturdays, and in the evenings on other days. The schedule is flexible; exact class times will be published separately."
     }
   ],
   "courses": [
