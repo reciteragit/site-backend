@@ -149,7 +149,36 @@ class AcademyTests(TestCase):
             gateway.list.return_value.auto_paging_iter.return_value=iter([])
             result=self.api.post('/api/academy/checkout/',data,format='json')
             self.assertEqual(result.status_code,200,result.data)
-            self.assertIn('recitera-academy-v2-',gateway.create.call_args.args[1]['idempotency_key'])
+            self.assertIn('recitera-academy-v3-',gateway.create.call_args.args[1]['idempotency_key'])
+        self.assertEqual(Order.objects.count(),1)
+        self.assertEqual(Booking.objects.count(),1)
+
+    def test_short_pending_window_is_renewed_only_after_session_reconciliation(self):
+        import stripe
+        self.api.post('/api/academy/cart/',{'slot_id':str(self.slot.pk)},format='json')
+        data={'request_id':str(uuid.uuid4()),'timezone':'Asia/Tehran'}
+        with patch('academy.views.client') as factory:
+            factory.return_value.v1.checkout.sessions.create.side_effect=stripe.APIConnectionError('temporary connection failure')
+            self.assertEqual(self.api.post('/api/academy/checkout/',data,format='json').status_code,503)
+        order=Order.objects.get()
+        old_expiry=timezone.now()+timedelta(minutes=20)
+        Order.objects.filter(pk=order.pk).update(expires_at=old_expiry)
+        with patch('academy.views.client') as factory:
+            gateway=factory.return_value.v1.checkout.sessions
+            calls=[]
+            def create(params,options):
+                calls.append(params)
+                if len(calls)==1:
+                    raise stripe.InvalidRequestError('The expires_at timestamp must be at least 30 minutes from Checkout Session creation.',param=None)
+                return stripe_session(params,options)
+            gateway.create.side_effect=create
+            gateway.list.return_value.auto_paging_iter.return_value=iter([])
+            result=self.api.post('/api/academy/checkout/',data,format='json')
+            self.assertEqual(result.status_code,200,result.data)
+            self.assertEqual(gateway.list.call_count,1)
+            self.assertGreater(calls[-1]['expires_at']-timezone.now().timestamp(),60*60)
+        order.refresh_from_db()
+        self.assertGreater(order.expires_at,old_expiry)
         self.assertEqual(Order.objects.count(),1)
         self.assertEqual(Booking.objects.count(),1)
 

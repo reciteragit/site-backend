@@ -1,13 +1,16 @@
 from datetime import timedelta
 import stripe
-import logging
-import re
+from django.db import transaction
+from django.utils import timezone
+from .models import Order
 
 
 def create_session(gateway, order, params):
     try:
         return gateway.v1.checkout.sessions.create(params, {'idempotency_key':f'recitera-academy-{order.id}'})
-    except stripe.IdempotencyError:
+    except (stripe.IdempotencyError, stripe.InvalidRequestError) as exc:
+        if not isinstance(exc, stripe.IdempotencyError) and getattr(exc, 'param', None) != 'expires_at' and 'expires_at' not in str(exc):
+            raise
         # Requests rejected by the previous API shape can retain their key. First
         # recover a successful session whose response may have been lost, so a
         # migration never creates a second payable session for the same order.
@@ -24,9 +27,17 @@ def create_session(gateway, order, params):
                 return session
             if session.status == 'complete':
                 raise ValueError('Existing checkout awaits payment reconciliation.')
-        try:
-            return gateway.v1.checkout.sessions.create(params, {'idempotency_key':f'recitera-academy-v2-{order.id}'})
-        except stripe.InvalidRequestError as exc:
-            message = re.sub(r'[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+', '[email]', str(exc))
-            logging.getLogger(__name__).warning('Checkout recovery rejection: %s',message[:600])
-            raise
+        with transaction.atomic():
+            current = Order.objects.select_for_update().get(pk=order.pk)
+            now = timezone.now()
+            if current.status != 'held' or current.expires_at <= now:
+                raise ValueError('Reservation is no longer eligible for checkout preparation.')
+            # No previous open/complete Stripe session exists. Renew a short
+            # preparation window under the lock; concurrent retries share it.
+            if current.expires_at < now + timedelta(minutes=36):
+                current.expires_at = now + timedelta(minutes=66)
+                current.save(update_fields=['expires_at'])
+            order.expires_at = current.expires_at
+        params = {**params, 'expires_at':int((order.expires_at-timedelta(minutes=5)).timestamp())}
+        key = f'recitera-academy-v3-{order.id}-{params["expires_at"]}'
+        return gateway.v1.checkout.sessions.create(params, {'idempotency_key':key})
