@@ -1,5 +1,7 @@
 from datetime import timedelta
 import stripe
+import logging
+import re
 
 
 def create_session(gateway, order, params):
@@ -22,4 +24,9 @@ def create_session(gateway, order, params):
                 return session
             if session.status == 'complete':
                 raise ValueError('Existing checkout awaits payment reconciliation.')
-        return gateway.v1.checkout.sessions.create(params, {'idempotency_key':f'recitera-academy-v2-{order.id}'})
+        try:
+            return gateway.v1.checkout.sessions.create(params, {'idempotency_key':f'recitera-academy-v2-{order.id}'})
+        except stripe.InvalidRequestError as exc:
+            message = re.sub(r'[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+', '[email]', str(exc))
+            logging.getLogger(__name__).warning('Checkout recovery rejection: %s',message[:600])
+            raise
