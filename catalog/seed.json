@@ -138,6 +138,28 @@
         "Teaching Kids"
       ],
       "biography": "More than 16 years of Quran teaching experience\nSpecialized in Tajweed, Hifz, and children's education\nCreates a positive and encouraging learning environment\nHelps students improve Quran recitation skills\nSupports effective memorization (Hifz) development\nFocuses on building a lasting connection with the Quran\nAdapts learning to each student's individual pace and needs"
+    },
+    {
+      "slug": "hala-kurdi",
+      "name": "Hala Kurdi",
+      "experience": "12 years",
+      "languages": [
+        "English",
+        "Arabic"
+      ],
+      "image": "/assets/hala-kurdi.png",
+      "profile_url": "https://www.recitera.com/teachers/hala-kurdi",
+      "price": "30.00",
+      "currency": "CAD",
+      "sort_order": 7,
+      "published": true,
+      "based_in": "Syria",
+      "specialities": [
+        "Tajweed",
+        "Memorization",
+        "Teaching Kids"
+      ],
+      "biography": "Hala Kurdi is a Quran teacher with 12 years of teaching experience.\nShe teaches Tajweed, Quran memorization (Hifz), and children in English and Arabic.\nShe welcomes female students of all ages and boys aged 10 and under.\nShe prefers evening lessons, four days a week."
     }
   ],
   "courses": [
