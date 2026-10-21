@@ -70,6 +70,7 @@ class FreeTrialTests(TestCase):
         self.assertEqual(process_event(event)[1],200);paid_order.refresh_from_db();self.assertEqual(paid_order.status,'payment_review')
         self.assertEqual(Booking.objects.filter(status='confirmed').count(),1)
     def test_overlapping_session_plans_are_separate_and_dst_safe(self):
+        Slot.objects.filter(pk__in=[self.paid.pk,self.trial.pk]).update(active=False)
         start=(timezone.now()+timedelta(days=3)).date()
         data={'kind':'class','timezone':'Africa/Cairo','start_date':str(start),'end_date':str(start+timedelta(days=7)),'duration_minutes':45,'weekly':[{'day':d,'ranges':[{'start':'12:00','end':'13:30'}]} for d in range(7)]}
         serializer=ScheduleInput(data=data);serializer.is_valid(raise_exception=True);save_schedule(self.teacher,dict(serializer.validated_data))
