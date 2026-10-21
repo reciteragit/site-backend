@@ -1,5 +1,6 @@
 import uuid
 import logging
+import re
 from datetime import timedelta, datetime, timezone as dt_timezone
 from decimal import Decimal
 from urllib.parse import urlsplit
@@ -368,6 +369,8 @@ class Checkout(AcademyView):
             return Response(order_data(order))
         except (stripe.StripeError,ValueError) as exc:
             logging.getLogger(__name__).warning('Academy checkout creation failed: type=%s code=%s param=%s', type(exc).__name__, getattr(exc,'code',None), getattr(exc,'param',None))
+            if isinstance(exc, stripe.InvalidRequestError):
+                logging.getLogger(__name__).warning('Checkout recovery rejection: %s',re.sub(r'[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+','[email]',str(exc))[:600])
             if getattr(exc, 'param', None) == 'expires_at':
                 return Response({'error':'This payment preparation window has ended. Your class remains reserved until the time shown above. After it expires, refresh the cart to start a new checkout.'},status=503)
             return Response({'error':'We could not confirm checkout creation. Your temporary reservation is retained; retry this same checkout or wait until it expires.'},status=503)
