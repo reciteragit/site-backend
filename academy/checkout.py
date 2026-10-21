@@ -13,7 +13,8 @@ def create_session(gateway, order, params):
         for index, session in enumerate(sessions.auto_paging_iter()):
             if index >= 500:
                 raise ValueError('Checkout recovery requires operator review.')
-            if session.metadata.get('academy_order_id') != str(order.id):
+            metadata = session.metadata.to_dict() if hasattr(session.metadata, 'to_dict') else session.metadata
+            if metadata.get('academy_order_id') != str(order.id):
                 continue
             if session.client_reference_id != str(order.id) or session.amount_total != int(order.amount*100) or session.currency != order.currency.lower() or bool(session.livemode) != (order.mode == 'live'):
                 raise ValueError('Existing checkout does not match order.')

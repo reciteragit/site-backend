@@ -158,7 +158,7 @@ class AcademyTests(TestCase):
         self.api.post('/api/academy/cart/',{'slot_id':str(self.slot.pk)},format='json')
         def existing_sessions(params):
             order=Order.objects.get()
-            session=SimpleNamespace(id='cs_existing',url='https://checkout.stripe.com/c/pay/existing',metadata={'academy_order_id':str(order.id)},client_reference_id=str(order.id),amount_total=2500,currency='cad',livemode=False,status='open')
+            session=SimpleNamespace(id='cs_existing',url='https://checkout.stripe.com/c/pay/existing',metadata=stripe.StripeObject.construct_from({'academy_order_id':str(order.id)},None),client_reference_id=str(order.id),amount_total=2500,currency='cad',livemode=False,status='open')
             return SimpleNamespace(auto_paging_iter=lambda:iter([session]))
         with patch('academy.views.client') as factory:
             gateway=factory.return_value.v1.checkout.sessions
