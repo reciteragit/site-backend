@@ -202,6 +202,29 @@
         "Fluent Quran Reading"
       ],
       "biography": "Quran & Tajweed Teacher\nMariam Al-Khatib is based in Germany and has 5 years of teaching experience.\nSpecialties include Tajweed, Quran memorization, and fluent Quran reading."
+    },
+    {
+      "slug": "youssef-benali",
+      "name": "Youssef Benali",
+      "experience": "21 years",
+      "languages": [
+        "Spanish"
+      ],
+      "image": "/assets/youssef-benali.png",
+      "profile_url": "https://www.recitera.com/teachers/youssef-benali",
+      "price": "30.00",
+      "currency": "CAD",
+      "sort_order": 10,
+      "published": true,
+      "based_in": "Spain",
+      "specialities": [
+        "Tajweed",
+        "Quran Recitation",
+        "Fluent Reading",
+        "Memorization",
+        "Pronunciation Correction"
+      ],
+      "biography": "Senior Quran & Tajweed Teacher\nYoussef Benali es un profesor senior del Corán con 21 años de experiencia en la enseñanza. Reside en España y enseña principalmente en español.\nEstá especializado en Tajwid, recitación correcta del Corán, lectura fluida, memorización y corrección de la pronunciación y de los errores más comunes en la recitación. Su método de enseñanza es claro, paciente y adaptado al nivel y al ritmo de cada estudiante, desde principiantes hasta alumnos que desean perfeccionar su recitación."
     }
   ],
   "courses": [
