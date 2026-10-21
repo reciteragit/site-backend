@@ -13,7 +13,7 @@ class Command(BaseCommand):
             raise CommandError('Checkout probe: Stripe configuration is not ready.')
         gateway = client(config)
         try:
-            session = gateway.v1.checkout.sessions.create({'mode':'payment','payment_method_types':['card'],'expires_at':int((timezone.now()+timedelta(minutes=40)).timestamp()),'line_items':[{'price_data':{'currency':'cad','unit_amount':3000,'product_data':{'name':'Recitera checkout connectivity check'}},'quantity':1}],'success_url':config.frontend_origin.rstrip('/')+'/account','cancel_url':config.frontend_origin.rstrip('/')+'/cart'})
+            session = gateway.v1.checkout.sessions.create({'mode':'payment','expires_at':int((timezone.now()+timedelta(minutes=40)).timestamp()),'line_items':[{'price_data':{'currency':'cad','unit_amount':3000,'product_data':{'name':'Recitera checkout connectivity check'}},'quantity':1}],'success_url':config.frontend_origin.rstrip('/')+'/account','cancel_url':config.frontend_origin.rstrip('/')+'/cart'})
             gateway.v1.checkout.sessions.expire(session.id)
             self.stdout.write('Checkout probe: hosted session created and expired; no charge collected.')
         except stripe.StripeError as exc:

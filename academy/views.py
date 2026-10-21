@@ -1,4 +1,5 @@
 import uuid
+import logging
 from datetime import timedelta, datetime, timezone as dt_timezone
 from decimal import Decimal
 from urllib.parse import urlsplit
@@ -338,7 +339,7 @@ class Checkout(AcademyView):
                 amount=sum((slot_price(slot) for slot in slots),Decimal('0'))
                 if amount and (not config or not config.lessons_enabled or not ready(config) or not valid_origin(config.frontend_origin)):
                     return Response({'error':'Class payments are not configured yet.'},status=503)
-                order=Order.objects.create(request_id=data['request_id'],user=request.user,email=request.user.email,amount=amount,mode=config.mode if amount else 'free',expires_at=timezone.now()+timedelta(minutes=36))
+                order=Order.objects.create(request_id=data['request_id'],user=request.user,email=request.user.email,amount=amount,mode=config.mode if amount else 'free',expires_at=timezone.now()+timedelta(minutes=66))
                 for slot in slots:Booking.objects.create(order=order,slot=slot,student=request.user,student_timezone=data['timezone'],teacher_timezone=slot.teacher.timezone,teacher_name=slot.teacher.teacher.name,amount=slot_price(slot),meeting_url=slot.teacher.meeting_url)
             if order.amount == 0 and order.status == 'held':
                 from .notifications import queue_confirmation, flush_mail
@@ -356,7 +357,7 @@ class Checkout(AcademyView):
         session_expiry=int((order.expires_at-timedelta(minutes=5)).timestamp())
         try:
             bookings=list(order.bookings.select_related('slot'))
-            session=client(config).v1.checkout.sessions.create({'mode':'payment','payment_method_types':['card'],'customer_email':order.email,'client_reference_id':str(order.id),'metadata':{'academy_order_id':str(order.id)},'expires_at':session_expiry,'line_items':[{'price_data':{'currency':'cad','unit_amount':int(b.amount*100),'product_data':{'name':f'Class with {b.teacher_name} — {b.slot.starts_at.strftime("%Y-%m-%d %H:%M UTC")}'}},'quantity':1} for b in bookings if b.amount > 0],'success_url':f'{origin}/account?order={order.id}','cancel_url':f'{origin}/cart?order={order.id}&cancelled=1'},{'idempotency_key':f'recitera-academy-{order.id}'})
+            session=client(config).v1.checkout.sessions.create({'mode':'payment','customer_email':order.email,'client_reference_id':str(order.id),'metadata':{'academy_order_id':str(order.id)},'expires_at':session_expiry,'line_items':[{'price_data':{'currency':'cad','unit_amount':int(b.amount*100),'product_data':{'name':f'Class with {b.teacher_name} — {b.slot.starts_at.strftime("%Y-%m-%d %H:%M UTC")}'}},'quantity':1} for b in bookings if b.amount > 0],'success_url':f'{origin}/account?order={order.id}','cancel_url':f'{origin}/cart?order={order.id}&cancelled=1'},{'idempotency_key':f'recitera-academy-{order.id}'})
             if not session.url or not session.url.startswith('https://checkout.stripe.com/') or bool(session.livemode)!=(order.mode=='live'):raise ValueError('Invalid Stripe session')
             with transaction.atomic():
                 order=Order.objects.select_for_update().get(pk=order.pk)
@@ -364,7 +365,11 @@ class Checkout(AcademyView):
                 if order.status=='held':order.status='pending'
                 order.save(update_fields=['stripe_session_id','checkout_url','status'])
             return Response(order_data(order))
-        except (stripe.StripeError,ValueError):return Response({'error':'We could not confirm checkout creation. Your temporary reservation is retained; retry this same checkout or wait until it expires.'},status=503)
+        except (stripe.StripeError,ValueError) as exc:
+            logging.getLogger(__name__).warning('Academy checkout creation failed: type=%s code=%s param=%s', type(exc).__name__, getattr(exc,'code',None), getattr(exc,'param',None))
+            if getattr(exc, 'param', None) == 'expires_at':
+                return Response({'error':'This payment preparation window has ended. Your class remains reserved until the time shown above. After it expires, refresh the cart to start a new checkout.'},status=503)
+            return Response({'error':'We could not confirm checkout creation. Your temporary reservation is retained; retry this same checkout or wait until it expires.'},status=503)
 
 
 def booking_data(booking,viewer):

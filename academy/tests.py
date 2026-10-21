@@ -121,6 +121,24 @@ class AcademyTests(TestCase):
             self.assertEqual(self.api.post('/api/academy/checkout/',data,format='json').status_code,200)
         self.assertEqual(Order.objects.count(),1);self.assertEqual(Booking.objects.count(),1)
 
+    def test_checkout_retry_keeps_stripe_minimum_expiry_after_ten_minutes(self):
+        self.api.post('/api/academy/cart/',{'slot_id':str(self.slot.pk)},format='json')
+        data={'request_id':str(uuid.uuid4()),'timezone':'Asia/Tehran'}
+        import stripe
+        with patch('academy.views.client') as gateway:
+            gateway.return_value.v1.checkout.sessions.create.side_effect=stripe.APIConnectionError('temporary connection failure')
+            self.assertEqual(self.api.post('/api/academy/checkout/',data,format='json').status_code,503)
+        retry_time=timezone.now()+timedelta(minutes=10)
+        with patch('academy.views.timezone.now',return_value=retry_time), patch('academy.views.client') as gateway:
+            gateway.return_value.v1.checkout.sessions.create.side_effect=stripe_session
+            response=self.api.post('/api/academy/checkout/',data,format='json')
+            self.assertEqual(response.status_code,200,response.data)
+            params=gateway.return_value.v1.checkout.sessions.create.call_args.args[0]
+            self.assertGreater(params['expires_at']-retry_time.timestamp(),30*60)
+            self.assertNotIn('payment_method_types',params)
+        self.assertEqual(Order.objects.count(),1)
+        self.assertEqual(Booking.objects.count(),1)
+
     def test_idempotent_checkout_and_second_customer_rejected(self):
         order=self.reserve()
         with patch('academy.views.client') as stripe_factory:
