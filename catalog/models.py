@@ -6,16 +6,17 @@ from .payment_models import StripeSettings, Donor, PaymentItem, PaymentOrder, St
 
 class TeacherApplication(models.Model):
     request_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    full_name = models.CharField(max_length=200, blank=True)
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
     nickname = models.CharField(max_length=100, blank=True)
-    gender = models.CharField(max_length=10, choices=[(v,v) for v in ['Male','Female','Other']])
-    date_of_birth = models.DateField()
+    gender = models.CharField(max_length=10, blank=True, choices=[(v,v) for v in ['Male','Female','Other']])
+    date_of_birth = models.DateField(null=True, blank=True)
     whatsapp = models.CharField(max_length=40)
-    years_of_experience = models.PositiveSmallIntegerField()
+    years_of_experience = models.PositiveSmallIntegerField(null=True, blank=True)
     email = models.EmailField(max_length=254)
-    country = models.CharField(max_length=100)
-    timezone = models.CharField(max_length=100)
+    country = models.CharField(max_length=100, blank=True)
+    timezone = models.CharField(max_length=100, blank=True)
     specializations = models.JSONField(default=list)
     languages = models.JSONField(default=list)
     other_languages = models.CharField(max_length=200, blank=True)
@@ -27,7 +28,7 @@ class TeacherApplication(models.Model):
     class Meta:
         ordering = ['-created_at']
     def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+        return self.full_name or f'{self.first_name} {self.last_name}'.strip()
 
 class TeacherAttachment(models.Model):
     application = models.ForeignKey(TeacherApplication, on_delete=models.CASCADE, related_name='attachments')

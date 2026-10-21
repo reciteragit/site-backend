@@ -34,6 +34,14 @@ class TeacherApplicationSerializer(serializers.ModelSerializer):
         if 'Other' in attrs.get('languages',[]) and not attrs.get('other_languages','').strip():raise serializers.ValidationError({'other_languages':'Please specify your teaching languages.'})
         return attrs
 
+class ShortTeacherApplicationSerializer(serializers.Serializer):
+    request_id = serializers.UUIDField()
+    full_name = serializers.CharField(max_length=200)
+    email = serializers.EmailField(max_length=254)
+    whatsapp = serializers.RegexField(re.compile(r'^[+0-9() .#*=\-]{6,40}$'), max_length=40)
+    description = serializers.CharField(max_length=5000, source='preferences')
+
+
 def attachment(file,category):
     data=file.read()
     if not data or len(data)>3*1024*1024:raise ValueError('Invalid attachment size.')
@@ -54,6 +62,14 @@ class TeacherRegistration(APIView):
     throttle_classes=[FormThrottle]
     parser_classes=[MultiPartParser,FormParser]
     def post(self,request):
+        if 'full_name' in request.data or 'description' in request.data:
+            serializer=ShortTeacherApplicationSerializer(data=request.data)
+            if not serializer.is_valid():return Response({'error':'Please check your name, email, WhatsApp number and description.','fields':serializer.errors},status=400)
+            if request.FILES:return Response({'error':'Attachments are not required for this form.'},status=400)
+            values=dict(serializer.validated_data);key=values.pop('request_id')
+            with transaction.atomic():
+                TeacherApplication.objects.get_or_create(request_id=key,defaults=values)
+            return Response({'success':True},status=201)
         serializer=TeacherApplicationSerializer(data=request.data)
         if not serializer.is_valid():return Response({'error':'Please check your application details.','fields':serializer.errors},status=400)
         groups={name:request.FILES.getlist(name) for name in ['sample_work','certificate','profile_picture']}

@@ -23,11 +23,13 @@ class TeacherAttachmentInline(admin.TabularInline):
 
 @admin.register(TeacherApplication)
 class TeacherApplicationAdmin(admin.ModelAdmin):
-    list_display = ('first_name','last_name','email','country','created_at','reviewed')
+    list_display = ('applicant_name','email','whatsapp','created_at','reviewed')
     list_filter = ('reviewed','country','gender')
-    search_fields = ('first_name','last_name','email','nickname')
+    search_fields = ('full_name','first_name','last_name','email','nickname')
     readonly_fields = ('request_id','created_at')
     inlines = [TeacherAttachmentInline]
+    @admin.display(description='Full name')
+    def applicant_name(self,obj):return str(obj)
     def get_urls(self):
         return [path('<int:application_id>/attachment/<int:attachment_id>/',self.admin_site.admin_view(self.download_attachment),name='teacher_attachment_download')]+super().get_urls()
     def download_attachment(self,request,application_id,attachment_id):

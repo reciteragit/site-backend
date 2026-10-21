@@ -45,3 +45,28 @@ class TeacherRegistrationTests(TestCase):
         self.assertIn('no-store',response['Cache-Control'])
     def test_no_public_read_endpoint(self):
         self.assertEqual(self.client.get('/api/forms/teacher/').status_code,405)
+
+class ShortTeacherApplicationTests(TestCase):
+    def setUp(self):
+        cache.clear();self.client=APIClient()
+        self.data={'request_id':str(uuid.uuid4()),'full_name':'آزمایش نام خانوادگی','email':'short-form@example.com','whatsapp':'+1234567890','description':'I teach Quran recitation.'}
+    def test_four_field_application_persists_without_documents_and_retries_once(self):
+        for _ in range(2):self.assertEqual(self.client.post('/api/forms/teacher/',self.data,format='multipart').status_code,201)
+        self.assertEqual(TeacherApplication.objects.count(),1)
+        application=TeacherApplication.objects.get()
+        self.assertEqual(application.full_name,self.data['full_name']);self.assertEqual(str(application),self.data['full_name'])
+        self.assertEqual(application.preferences,self.data['description'])
+        self.assertIsNone(application.date_of_birth);self.assertIsNone(application.years_of_experience)
+        self.assertFalse(application.attachments.exists());self.assertFalse(application.reviewed)
+    def test_required_fields_and_invalid_email_or_whatsapp_are_rejected(self):
+        for field in ['full_name','email','whatsapp','description']:
+            body=dict(self.data);body[field]=''
+            self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,400)
+        for field,value in [('email','invalid'),('whatsapp','not-a-phone')]:
+            body=dict(self.data);body[field]=value
+            self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,400)
+        self.assertFalse(TeacherApplication.objects.exists())
+    def test_cannot_set_reviewed_flag(self):
+        body=dict(self.data,reviewed=True)
+        self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,201)
+        self.assertFalse(TeacherApplication.objects.get().reviewed)
