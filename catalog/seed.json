@@ -181,6 +181,27 @@
         "Teaching Kids"
       ],
       "biography": "Ahmed Ayman Elshazly is a Quran teacher with 5 years of teaching experience.\nAhmed teaches Arabic-speaking students Quran recitation, Tajweed, and memorization (Hifz), including children.\nTeaching preferences include male students, as well as boys and girls.\nPreferred availability is during the day and evening on Fridays and Saturdays, and in the evenings on other days. The schedule is flexible; exact class times will be published separately."
+    },
+    {
+      "slug": "mariam-al-khatib",
+      "name": "Mariam Al-Khatib",
+      "experience": "5 years",
+      "languages": [
+        "German"
+      ],
+      "image": "/assets/mariam-al-khatib.png",
+      "profile_url": "https://www.recitera.com/teachers/mariam-al-khatib",
+      "price": "30.00",
+      "currency": "CAD",
+      "sort_order": 9,
+      "published": true,
+      "based_in": "Germany",
+      "specialities": [
+        "Tajweed",
+        "Quran Memorization",
+        "Fluent Quran Reading"
+      ],
+      "biography": "Quran & Tajweed Teacher\nMariam Al-Khatib is based in Germany and has 5 years of teaching experience.\nSpecialties include Tajweed, Quran memorization, and fluent Quran reading."
     }
   ],
   "courses": [
