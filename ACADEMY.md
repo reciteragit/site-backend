@@ -210,3 +210,15 @@ Students fetch `teachers/<slug>/availability?timezone=<IANA>` for available loca
 dates, then `teachers/<slug>/slots?date=YYYY-MM-DD&timezone=<IANA>` for that day's
 compact slots. These endpoints expose neither classroom links nor identities.
 The legacy slots query without a date remains supported.
+
+### Free trials and paid classes
+
+Weekly plans are independent per teacher and session kind (`class`, `trial`).
+Existing plans/slots migrate to paid `class`. Trial plans require 15-minute slots
+and always cost zero; paid slots use the current catalogue price. Alternative
+paid and free slots may overlap until one is held or confirmed. Availability,
+checkout locking and late Stripe webhook processing check the full time interval
+across every slot of that teacher, preventing cross-type double bookings.
+Free-only carts confirm atomically without Stripe (mode `free`), enqueue the
+usual private confirmation emails/calendar and return the confirmed order.
+Mixed carts hold both kinds until payment; only paid lines go to Stripe.

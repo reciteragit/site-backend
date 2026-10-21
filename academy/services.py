@@ -3,6 +3,7 @@ from decimal import Decimal
 from urllib.parse import urlsplit
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from rest_framework import serializers
 from .models import Slot, Booking, Order, TeachingProfile
@@ -41,8 +42,13 @@ def expire_holds():
                 order.bookings.filter(status='held').update(status='expired')
 
 
+def slot_price(slot):
+    return Decimal('0') if slot.kind == 'trial' else slot.teacher.teacher.price
+
+
 def available_queryset():
-    return Slot.objects.filter(active=True,teacher__approved=True,teacher__user__is_active=True,teacher__teacher__published=True,starts_at__gt=timezone.now()+timedelta(hours=1)).exclude(bookings__status__in=['held','confirmed'])
+    occupied = Booking.objects.filter(slot__teacher_id=OuterRef('teacher_id'), status__in=['held','confirmed'], slot__starts_at__lt=OuterRef('ends_at'), slot__ends_at__gt=OuterRef('starts_at'))
+    return Slot.objects.filter(active=True,teacher__approved=True,teacher__user__is_active=True,teacher__teacher__published=True,starts_at__gt=timezone.now()+timedelta(hours=1)).annotate(occupied=Exists(occupied)).filter(occupied=False)
 
 
 def process_event(event):
@@ -55,6 +61,7 @@ def process_event(event):
             lock_teachers(ids)
             order=Order.objects.select_for_update().filter(pk=key).first()
             if not order: return {'error':'Order not found.'},400
+            if order.mode == 'free': return {'error':'Free bookings do not use Stripe.'},400
             if StripeEvent.objects.filter(event_id=event['id']).exists(): return {'received':True},200
             if (order.stripe_session_id and order.stripe_session_id!=obj.get('id')) or obj.get('client_reference_id')!=str(order.id) or obj.get('amount_total')!=int(order.amount*100) or obj.get('currency')!='cad' or bool(event.get('livemode'))!=(order.mode=='live'):
                 return {'error':'Payment does not match booking order.'},400
@@ -62,7 +69,7 @@ def process_event(event):
             if successful and order.status not in ['paid','payment_review']:
                 bookings=list(order.bookings.select_related('slot__teacher__user','student','order'))
                 slot_ids=[b.slot_id for b in bookings]
-                conflicts=Booking.objects.filter(slot_id__in=slot_ids,status__in=['held','confirmed']).exclude(order=order).exists()
+                conflicts=any(Booking.objects.filter(slot__teacher_id=b.slot.teacher_id,status__in=['held','confirmed'],slot__starts_at__lt=b.slot.ends_at,slot__ends_at__gt=b.slot.starts_at).exclude(order=order).exists() or Booking.objects.filter(student=b.student,status__in=['held','confirmed'],slot__starts_at__lt=b.slot.ends_at,slot__ends_at__gt=b.slot.starts_at).exclude(order=order).exists() for b in bookings)
                 if conflicts or any(b.slot.starts_at<=timezone.now() or not b.slot.active or not b.slot.teacher.approved for b in bookings):
                     order.status='payment_review';order.bookings.update(status='payment_review')
                 else:

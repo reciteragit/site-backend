@@ -18,6 +18,7 @@ class DayRanges(serializers.Serializer):
 
 
 class ScheduleInput(serializers.Serializer):
+    kind = serializers.ChoiceField(choices=["class", "trial"], default="class")
     timezone = serializers.CharField(max_length=100)
     start_date = serializers.DateField()
     end_date = serializers.DateField()
@@ -32,6 +33,8 @@ class ScheduleInput(serializers.Serializer):
         if len({d['day'] for d in data['weekly']}) != 7:
             raise serializers.ValidationError('Include each weekday exactly once.')
         duration = data['duration_minutes']
+        if data['kind'] == 'trial' and duration != 15:
+            raise serializers.ValidationError('Free trial sessions must be 15 minutes.')
         for day in data['weekly']:
             ranges = sorted(day['ranges'], key=lambda r: r['start'])
             last = None
@@ -46,7 +49,7 @@ class ScheduleInput(serializers.Serializer):
 
 
 def schedule_data(schedule):
-    return {'timezone': schedule.timezone, 'start_date': schedule.start_date.isoformat(), 'end_date': schedule.end_date.isoformat(), 'duration_minutes': schedule.duration_minutes, 'weekly': schedule.weekly}
+    return {'kind': schedule.kind, 'timezone': schedule.timezone, 'start_date': schedule.start_date.isoformat(), 'end_date': schedule.end_date.isoformat(), 'duration_minutes': schedule.duration_minutes, 'weekly': schedule.weekly}
 
 
 def save_schedule(profile, data):
@@ -77,10 +80,10 @@ def save_schedule(profile, data):
         day += timedelta(days=1)
     with transaction.atomic():
         profile = TeachingProfile.objects.select_for_update().get(pk=profile.pk)
-        schedule, _ = AvailabilitySchedule.objects.get_or_create(teacher=profile, defaults=data)
+        schedule, _ = AvailabilitySchedule.objects.get_or_create(teacher=profile, kind=data.get('kind', 'class'), defaults=data)
         existing = list(Slot.objects.filter(teacher=profile, ends_at__gt=now).prefetch_related('bookings'))
         protected = [s for s in existing if any(b.status in ['held', 'confirmed'] for b in s.bookings.all())]
-        manual = [s for s in existing if s.active and (s.schedule_id != schedule.pk or s.starts_at <= now)]
+        manual = [s for s in existing if s.active and (s.schedule_id is None or s.starts_at <= now)]
         blockers = {s.pk: s for s in protected + manual}.values()
         allowed, skipped_overlap = set(), 0
         for start, end in desired:
@@ -96,7 +99,7 @@ def save_schedule(profile, data):
                 keep[key] = s
         remove = [s.pk for s in free if s.active and s.pk not in {v.pk for v in keep.values()}]
         Slot.objects.filter(pk__in=remove).update(active=False)
-        create = [Slot(teacher=profile, schedule=schedule, starts_at=start, ends_at=end) for start, end in sorted(allowed - keep.keys())]
+        create = [Slot(teacher=profile, schedule=schedule, kind=data.get('kind', 'class'), starts_at=start, ends_at=end) for start, end in sorted(allowed - keep.keys())]
         Slot.objects.bulk_create(create)
         for key, value in data.items():
             setattr(schedule, key, value)

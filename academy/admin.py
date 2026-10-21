@@ -31,7 +31,7 @@ class TeachingAdmin(admin.ModelAdmin):
 class SlotAdmin(admin.ModelAdmin):
     list_display=['teacher','starts_at','ends_at','active']
     list_filter=['teacher','active']
-    readonly_fields=['id','teacher','starts_at','ends_at','active']
+    readonly_fields=['id','teacher','starts_at','ends_at','active','schedule','kind']
     def has_add_permission(self,request):return False
     def has_delete_permission(self,request,obj=None):return False
 

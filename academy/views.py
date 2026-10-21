@@ -33,7 +33,7 @@ class AcademyWriteThrottle(AnonRateThrottle):
 from .authentication import AcademyAuthentication, issue_token
 from .models import AvailabilitySchedule, Profile, TeachingProfile, Slot, CartItem, Order, Booking, AccessToken, EmailDelivery
 from .timezones import zone, local_time
-from .services import available_queryset, expire_holds, lock_teachers, valid_meeting
+from .services import available_queryset, expire_holds, lock_teachers, valid_meeting, slot_price
 from .notifications import calendar
 
 User=get_user_model()
@@ -183,7 +183,7 @@ class PublicSlots(AcademyView):
             start = datetime.combine(day, datetime.min.time(), tzinfo=tz)
             end = datetime.combine(day+timedelta(days=1), datetime.min.time(), tzinfo=tz)
             rows = rows.filter(starts_at__gte=start, starts_at__lt=end)
-        return Response([{'id':str(s.id),'starts_at':s.starts_at.isoformat(),'ends_at':s.ends_at.isoformat()} for s in rows[:500]])
+        return Response([{'id':str(s.id),'starts_at':s.starts_at.isoformat(),'ends_at':s.ends_at.isoformat(),'kind':s.kind,'price':str(slot_price(s)),'currency':s.teacher.teacher.currency} for s in rows.select_related('teacher__teacher')[:500]])
 
 
 class TeacherEditSerializer(serializers.Serializer):
@@ -237,7 +237,7 @@ class MyAvailability(AcademyView):
     def get(self, request):
         from .availability import schedule_data
         profile = my_teacher(request.user)
-        schedule = AvailabilitySchedule.objects.filter(teacher=profile).first()
+        schedule = AvailabilitySchedule.objects.filter(teacher=profile,kind=request.query_params.get('kind','class')).first()
         return Response({'schedule': schedule_data(schedule) if schedule else None})
 
     def post(self, request):
@@ -251,7 +251,7 @@ class MySlots(AcademyView):
     def get(self,request):
         expire_holds();p=my_teacher(request.user)
         rows=Slot.objects.filter(teacher=p,active=True,starts_at__gt=timezone.now()-timedelta(days=1)).prefetch_related('bookings')[:5000]
-        return Response([{'id':str(s.id),'starts_at':s.starts_at.isoformat(),'ends_at':s.ends_at.isoformat(),'active':s.active,'status':next((b.status for b in s.bookings.all() if b.status in ['held','confirmed']), 'available' if s.active else 'removed')} for s in rows])
+        return Response([{'id':str(s.id),'starts_at':s.starts_at.isoformat(),'ends_at':s.ends_at.isoformat(),'active':s.active,'kind':s.kind,'status':next((b.status for b in s.bookings.all() if b.status in ['held','confirmed']), 'available' if s.active else 'removed')} for s in rows])
     def post(self,request):
         p=my_teacher(request.user)
         class Input(serializers.Serializer):
@@ -281,7 +281,7 @@ class MySlots(AcademyView):
 def cart_data(user):
     available=set(available_queryset().values_list('pk',flat=True))
     items=CartItem.objects.filter(user=user).select_related('slot__teacher__teacher')
-    return [{'id':item.pk,'slot_id':str(item.slot_id),'teacher':item.slot.teacher.teacher.name,'teacher_slug':item.slot.teacher.teacher.slug,'starts_at':item.slot.starts_at.isoformat(),'ends_at':item.slot.ends_at.isoformat(),'price':str(item.slot.teacher.teacher.price),'currency':item.slot.teacher.teacher.currency,'available':item.slot_id in available and valid_meeting(item.slot.teacher.meeting_provider,item.slot.teacher.meeting_url)} for item in items]
+    return [{'id':item.pk,'slot_id':str(item.slot_id),'teacher':item.slot.teacher.teacher.name,'teacher_slug':item.slot.teacher.teacher.slug,'starts_at':item.slot.starts_at.isoformat(),'ends_at':item.slot.ends_at.isoformat(),'kind':item.slot.kind,'price':str(slot_price(item.slot)),'currency':item.slot.teacher.teacher.currency,'available':item.slot_id in available and valid_meeting(item.slot.teacher.meeting_provider,item.slot.teacher.meeting_url)} for item in items]
 
 
 class Cart(AcademyView):
@@ -317,7 +317,6 @@ class Checkout(AcademyView):
             timezone=serializers.CharField(max_length=100)
         s=Input(data=request.data);s.is_valid(raise_exception=True);data=s.validated_data;zone(data['timezone'])
         config=StripeSettings.objects.first()
-        if not config or not config.lessons_enabled or not ready(config) or not valid_origin(config.frontend_origin):return Response({'error':'Class payments are not configured yet.'},status=503)
         expire_holds()
         with transaction.atomic():
             User.objects.select_for_update().get(pk=request.user.pk)
@@ -334,11 +333,22 @@ class Checkout(AcademyView):
                 # Do not let a learner buy overlapping classes with different teachers.
                 for index,slot in enumerate(slots):
                     t=slot.teacher.teacher
-                    if slot.teacher.user_id==request.user.pk or not valid_meeting(slot.teacher.meeting_provider,slot.teacher.meeting_url) or t.currency!='CAD' or t.price<1:raise serializers.ValidationError('A teacher is not ready to accept this booking.')
+                    if slot.teacher.user_id==request.user.pk or not valid_meeting(slot.teacher.meeting_provider,slot.teacher.meeting_url) or t.currency!='CAD' or (slot.kind!='trial' and t.price<1):raise serializers.ValidationError('A teacher is not ready to accept this booking.')
                     if any(other.starts_at<slot.ends_at and other.ends_at>slot.starts_at for other in slots[index+1:]) or Booking.objects.filter(student=request.user,status__in=['held','confirmed'],slot__starts_at__lt=slot.ends_at,slot__ends_at__gt=slot.starts_at).exists():return Response({'error':'You already have a class at this time.'},status=409)
-                order=Order.objects.create(request_id=data['request_id'],user=request.user,email=request.user.email,amount=sum((slot.teacher.teacher.price for slot in slots),Decimal('0')),mode=config.mode,expires_at=timezone.now()+timedelta(minutes=36))
-                for slot in slots:Booking.objects.create(order=order,slot=slot,student=request.user,student_timezone=data['timezone'],teacher_timezone=slot.teacher.timezone,teacher_name=slot.teacher.teacher.name,amount=slot.teacher.teacher.price,meeting_url=slot.teacher.meeting_url)
+                amount=sum((slot_price(slot) for slot in slots),Decimal('0'))
+                if amount and (not config or not config.lessons_enabled or not ready(config) or not valid_origin(config.frontend_origin)):
+                    return Response({'error':'Class payments are not configured yet.'},status=503)
+                order=Order.objects.create(request_id=data['request_id'],user=request.user,email=request.user.email,amount=amount,mode=config.mode if amount else 'free',expires_at=timezone.now()+timedelta(minutes=36))
+                for slot in slots:Booking.objects.create(order=order,slot=slot,student=request.user,student_timezone=data['timezone'],teacher_timezone=slot.teacher.timezone,teacher_name=slot.teacher.teacher.name,amount=slot_price(slot),meeting_url=slot.teacher.meeting_url)
+            if order.amount == 0 and order.status == 'held':
+                from .notifications import queue_confirmation, flush_mail
+                order.status='paid';order.paid_at=timezone.now();order.save(update_fields=['status','paid_at'])
+                for booking in order.bookings.select_related('student','slot__teacher__user'):
+                    booking.status='confirmed';booking.save(update_fields=['status']);queue_confirmation(booking)
+                CartItem.objects.filter(user=request.user,slot_id__in=order.bookings.values_list('slot_id',flat=True)).delete()
+                transaction.on_commit(lambda order_id=order.pk: flush_mail(order_id=order_id), robust=True)
             if order.status in ['paid','expired','failed','payment_review']:return Response(order_data(order))
+            if not config or not config.lessons_enabled or not ready(config) or not valid_origin(config.frontend_origin):return Response({'error':'Class payments are not configured yet.'},status=503)
             if order.mode!=config.mode:return Response({'error':'Payment settings changed. Contact Recitera before retrying.'},status=409)
             if order.checkout_url:return Response(order_data(order))
         # The database hold is committed before calling Stripe. Retries use the same idempotency key.
@@ -346,7 +356,7 @@ class Checkout(AcademyView):
         session_expiry=int((order.expires_at-timedelta(minutes=5)).timestamp())
         try:
             bookings=list(order.bookings.select_related('slot'))
-            session=client(config).v1.checkout.sessions.create({'mode':'payment','payment_method_types':['card'],'customer_email':order.email,'client_reference_id':str(order.id),'metadata':{'academy_order_id':str(order.id)},'expires_at':session_expiry,'line_items':[{'price_data':{'currency':'cad','unit_amount':int(b.amount*100),'product_data':{'name':f'Class with {b.teacher_name} — {b.slot.starts_at.strftime("%Y-%m-%d %H:%M UTC")}'}},'quantity':1} for b in bookings],'success_url':f'{origin}/account?order={order.id}','cancel_url':f'{origin}/cart?order={order.id}&cancelled=1'},{'idempotency_key':f'recitera-academy-{order.id}'})
+            session=client(config).v1.checkout.sessions.create({'mode':'payment','payment_method_types':['card'],'customer_email':order.email,'client_reference_id':str(order.id),'metadata':{'academy_order_id':str(order.id)},'expires_at':session_expiry,'line_items':[{'price_data':{'currency':'cad','unit_amount':int(b.amount*100),'product_data':{'name':f'Class with {b.teacher_name} — {b.slot.starts_at.strftime("%Y-%m-%d %H:%M UTC")}'}},'quantity':1} for b in bookings if b.amount > 0],'success_url':f'{origin}/account?order={order.id}','cancel_url':f'{origin}/cart?order={order.id}&cancelled=1'},{'idempotency_key':f'recitera-academy-{order.id}'})
             if not session.url or not session.url.startswith('https://checkout.stripe.com/') or bool(session.livemode)!=(order.mode=='live'):raise ValueError('Invalid Stripe session')
             with transaction.atomic():
                 order=Order.objects.select_for_update().get(pk=order.pk)
@@ -358,7 +368,7 @@ class Checkout(AcademyView):
 
 
 def booking_data(booking,viewer):
-    row={'id':str(booking.id),'order_id':str(booking.order_id),'teacher':booking.teacher_name,'teacher_slug':booking.slot.teacher.teacher.slug,'starts_at':booking.slot.starts_at.isoformat(),'ends_at':booking.slot.ends_at.isoformat(),'timezone':booking.student_timezone,'status':booking.status,'amount':str(booking.amount),'currency':'CAD','mode':booking.order.mode,'meeting_url':booking.meeting_url if booking.status=='confirmed' else '', 'email_status': 'sent' if booking.emails.filter(recipient=viewer.email,sent_at__isnull=False).exists() else 'queued' if booking.status=='confirmed' else 'not_sent'}
+    row={'id':str(booking.id),'order_id':str(booking.order_id),'teacher':booking.teacher_name,'teacher_slug':booking.slot.teacher.teacher.slug,'starts_at':booking.slot.starts_at.isoformat(),'ends_at':booking.slot.ends_at.isoformat(),'timezone':booking.student_timezone,'status':booking.status,'kind':booking.slot.kind,'amount':str(booking.amount),'currency':'CAD','mode':booking.order.mode,'meeting_url':booking.meeting_url if booking.status=='confirmed' else '', 'email_status': 'sent' if booking.emails.filter(recipient=viewer.email,sent_at__isnull=False).exists() else 'queued' if booking.status=='confirmed' else 'not_sent'}
     if booking.slot.teacher.user_id==viewer.pk:row.update(student_name=booking.student.get_full_name(),student_email=booking.student.email)
     return row
 
