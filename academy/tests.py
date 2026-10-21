@@ -139,6 +139,37 @@ class AcademyTests(TestCase):
         self.assertEqual(Order.objects.count(),1)
         self.assertEqual(Booking.objects.count(),1)
 
+    def test_checkout_recovers_rejected_legacy_idempotency_key(self):
+        import stripe
+        self.api.post('/api/academy/cart/',{'slot_id':str(self.slot.pk)},format='json')
+        data={'request_id':str(uuid.uuid4()),'timezone':'Asia/Tehran'}
+        with patch('academy.views.client') as factory:
+            gateway=factory.return_value.v1.checkout.sessions
+            gateway.create.side_effect=[stripe.IdempotencyError('previous parameters differ'),stripe_session({'metadata':{'academy_order_id':'recovered'},'expires_at':int((timezone.now()+timedelta(hours=1)).timestamp())},{})]
+            gateway.list.return_value.auto_paging_iter.return_value=iter([])
+            result=self.api.post('/api/academy/checkout/',data,format='json')
+            self.assertEqual(result.status_code,200,result.data)
+            self.assertIn('recitera-academy-v2-',gateway.create.call_args.args[1]['idempotency_key'])
+        self.assertEqual(Order.objects.count(),1)
+        self.assertEqual(Booking.objects.count(),1)
+
+    def test_legacy_key_conflict_reuses_existing_checkout_without_duplicate(self):
+        import stripe
+        self.api.post('/api/academy/cart/',{'slot_id':str(self.slot.pk)},format='json')
+        def existing_sessions(params):
+            order=Order.objects.get()
+            session=SimpleNamespace(id='cs_existing',url='https://checkout.stripe.com/c/pay/existing',metadata={'academy_order_id':str(order.id)},client_reference_id=str(order.id),amount_total=2500,currency='cad',livemode=False,status='open')
+            return SimpleNamespace(auto_paging_iter=lambda:iter([session]))
+        with patch('academy.views.client') as factory:
+            gateway=factory.return_value.v1.checkout.sessions
+            gateway.create.side_effect=stripe.IdempotencyError('previous parameters differ')
+            gateway.list.side_effect=existing_sessions
+            result=self.api.post('/api/academy/checkout/',{'request_id':str(uuid.uuid4()),'timezone':'Asia/Tehran'},format='json')
+            self.assertEqual(result.status_code,200,result.data)
+            self.assertEqual(result.data['checkout_url'],'https://checkout.stripe.com/c/pay/existing')
+            self.assertEqual(gateway.create.call_count,1)
+        self.assertEqual(Order.objects.get().stripe_session_id,'cs_existing')
+
     def test_idempotent_checkout_and_second_customer_rejected(self):
         order=self.reserve()
         with patch('academy.views.client') as stripe_factory:

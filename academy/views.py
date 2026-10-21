@@ -357,7 +357,8 @@ class Checkout(AcademyView):
         session_expiry=int((order.expires_at-timedelta(minutes=5)).timestamp())
         try:
             bookings=list(order.bookings.select_related('slot'))
-            session=client(config).v1.checkout.sessions.create({'mode':'payment','customer_email':order.email,'client_reference_id':str(order.id),'metadata':{'academy_order_id':str(order.id)},'expires_at':session_expiry,'line_items':[{'price_data':{'currency':'cad','unit_amount':int(b.amount*100),'product_data':{'name':f'Class with {b.teacher_name} — {b.slot.starts_at.strftime("%Y-%m-%d %H:%M UTC")}'}},'quantity':1} for b in bookings if b.amount > 0],'success_url':f'{origin}/account?order={order.id}','cancel_url':f'{origin}/cart?order={order.id}&cancelled=1'},{'idempotency_key':f'recitera-academy-{order.id}'})
+            from .checkout import create_session
+            session=create_session(client(config),order,{'mode':'payment','customer_email':order.email,'client_reference_id':str(order.id),'metadata':{'academy_order_id':str(order.id)},'expires_at':session_expiry,'line_items':[{'price_data':{'currency':'cad','unit_amount':int(b.amount*100),'product_data':{'name':f'Class with {b.teacher_name} — {b.slot.starts_at.strftime("%Y-%m-%d %H:%M UTC")}'}},'quantity':1} for b in bookings if b.amount > 0],'success_url':f'{origin}/account?order={order.id}','cancel_url':f'{origin}/cart?order={order.id}&cancelled=1'})
             if not session.url or not session.url.startswith('https://checkout.stripe.com/') or bool(session.livemode)!=(order.mode=='live'):raise ValueError('Invalid Stripe session')
             with transaction.atomic():
                 order=Order.objects.select_for_update().get(pk=order.pk)
