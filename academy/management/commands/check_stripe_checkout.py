@@ -17,5 +17,7 @@ class Command(BaseCommand):
             gateway.v1.checkout.sessions.expire(session.id)
             self.stdout.write('Checkout probe: hosted session created and expired; no charge collected.')
         except stripe.StripeError as exc:
+            if isinstance(exc, stripe.InvalidRequestError) and exc.param == 'payment_method_types':
+                self.stdout.write('Checkout method diagnostic: '+str(exc))
             # Only structured codes: never log keys, customer data or checkout URLs.
             raise CommandError(f'Checkout probe: type={type(exc).__name__} code={getattr(exc,"code",None)} param={getattr(exc,"param",None)}') from None
