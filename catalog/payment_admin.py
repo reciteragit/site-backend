@@ -1,3 +1,5 @@
+from config.admin_badges import status_badge
+from unfold.admin import ModelAdmin, TabularInline
 from django import forms
 from django.contrib import admin,messages
 from django.core.exceptions import ValidationError
@@ -34,7 +36,7 @@ class StripeSettingsForm(forms.ModelForm):
         return obj
 
 @admin.register(StripeSettings)
-class StripeSettingsAdmin(admin.ModelAdmin):
+class StripeSettingsAdmin(ModelAdmin):
     form=StripeSettingsForm
     list_display=['__str__','enabled','mode','connection_status']
     fields=['enabled','mode','frontend_origin','connection_status','webhook_endpoint','donations_enabled','courses_enabled','lessons_enabled','other_payments_enabled','test_secret_key','test_webhook_secret','live_secret_key','live_webhook_secret']
@@ -62,17 +64,22 @@ class StripeSettingsAdmin(admin.ModelAdmin):
             except Exception:self.message_user(request,'Stripe connection could not be verified. Check the key and account access.',messages.ERROR)
 
 @admin.register(Donor)
-class DonorAdmin(admin.ModelAdmin):
+class DonorAdmin(ModelAdmin):
     list_display=['email','first_name','last_name','country','created_at'];search_fields=['email','first_name','last_name'];readonly_fields=['created_at']
 
 @admin.register(PaymentOrder)
-class PaymentOrderAdmin(admin.ModelAdmin):
-    list_display=['id','purpose','donor','amount','currency','status','mode','anonymous','created_at'];list_filter=['purpose','status','mode','anonymous'];search_fields=['donor__email','first_name','last_name','stripe_session_id'];readonly_fields=[f.name for f in PaymentOrder._meta.fields]
+class PaymentOrderAdmin(ModelAdmin):
+    list_per_page=25
+    date_hierarchy='created_at'
+    list_select_related=['donor']
+    @admin.display(description='Status',ordering='status')
+    def payment_status(self,obj):return status_badge(obj.status)
+    list_display=['id','purpose','donor','amount','currency','payment_status','mode','anonymous','created_at'];list_filter=['purpose','status','mode','anonymous'];search_fields=['donor__email','first_name','last_name','stripe_session_id'];readonly_fields=[f.name for f in PaymentOrder._meta.fields]
     def has_add_permission(self,request):return False
     def has_delete_permission(self,request,obj=None):return False
 
 @admin.register(PaymentItem)
-class PaymentItemAdmin(admin.ModelAdmin):
+class PaymentItemAdmin(ModelAdmin):
     list_display=['title','slug','amount','active','payment_page'];prepopulated_fields={'slug':['title']}
     def payment_page(self,obj):
         config=StripeSettings.objects.first()
@@ -80,7 +87,7 @@ class PaymentItemAdmin(admin.ModelAdmin):
         return format_html('<a href="{}/pay/other/{}" target="_blank" rel="noopener">Open payment page</a>',config.frontend_origin.rstrip('/'),obj.slug)
 
 @admin.register(StripeEvent)
-class StripeEventAdmin(admin.ModelAdmin):
+class StripeEventAdmin(ModelAdmin):
     list_display=['event_id','event_type','processed_at'];readonly_fields=['event_id','event_type','processed_at']
     def has_add_permission(self,request):return False
     def has_delete_permission(self,request,obj=None):return False

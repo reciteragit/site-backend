@@ -1,3 +1,4 @@
+from unfold.admin import ModelAdmin, TabularInline
 from django.contrib import admin
 from . import payment_admin
 from .models import Teacher, Course
@@ -9,7 +10,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.html import format_html
 import io
 
-class TeacherAttachmentInline(admin.TabularInline):
+class TeacherAttachmentInline(TabularInline):
     model = TeacherAttachment
     extra = 0
     fields = ('category','filename','size','download')
@@ -22,7 +23,14 @@ class TeacherAttachmentInline(admin.TabularInline):
         return format_html('<a href="{}">Download attachment</a>',reverse('admin:teacher_attachment_download',args=[obj.application_id,obj.pk]))
 
 @admin.register(TeacherApplication)
-class TeacherApplicationAdmin(admin.ModelAdmin):
+class TeacherApplicationAdmin(ModelAdmin):
+    list_per_page = 25
+    date_hierarchy = 'created_at'
+    fieldsets = (
+        ('Application', {'fields':('full_name','email','whatsapp','preferences','reviewed')}),
+        ('Additional details', {'classes':('collapse',),'fields':(('first_name','last_name'),'nickname','gender','date_of_birth','years_of_experience','country','timezone','specializations','languages','other_languages','referral','sample_url')}),
+        ('Record', {'fields':('request_id','created_at')}),
+    )
     list_display = ('applicant_name','email','whatsapp','created_at','reviewed')
     list_filter = ('reviewed','country','gender')
     search_fields = ('full_name','first_name','last_name','email','nickname')
@@ -30,6 +38,11 @@ class TeacherApplicationAdmin(admin.ModelAdmin):
     inlines = [TeacherAttachmentInline]
     @admin.display(description='Full name')
     def applicant_name(self,obj):return str(obj)
+    def get_form(self,request,obj=None,**kwargs):
+        form=super().get_form(request,obj,**kwargs)
+        for name in ['specializations','languages']:
+            if name in form.base_fields:form.base_fields[name].required=False
+        return form
     def get_urls(self):
         return [path('<int:application_id>/attachment/<int:attachment_id>/',self.admin_site.admin_view(self.download_attachment),name='teacher_attachment_download')]+super().get_urls()
     def download_attachment(self,request,application_id,attachment_id):
@@ -42,21 +55,29 @@ class TeacherApplicationAdmin(admin.ModelAdmin):
         return response
 
 @admin.register(VolunteerApplication)
-class VolunteerApplicationAdmin(admin.ModelAdmin):
+class VolunteerApplicationAdmin(ModelAdmin):
     list_display = ('name', 'email', 'created_at', 'reviewed')
     list_filter = ('reviewed',)
     search_fields = ('name', 'email', 'message')
     readonly_fields = ('request_id', 'created_at')
 
 @admin.register(NewsletterSubscriber)
-class NewsletterSubscriberAdmin(admin.ModelAdmin):
+class NewsletterSubscriberAdmin(ModelAdmin):
     list_display = ('email', 'created_at', 'active')
     list_filter = ('active',)
     search_fields = ('email',)
     readonly_fields = ('created_at',)
 
 @admin.register(Teacher)
-class TeacherAdmin(admin.ModelAdmin):
+class TeacherAdmin(ModelAdmin):
+    list_per_page = 25
+    search_help_text = "Find a teacher by name or teaching experience."
+    fieldsets = (
+        ('Public profile', {'fields':('name','slug','image','profile_url','biography')}),
+        ('Teaching details', {'fields':('based_in','experience','languages','specialities')}),
+        ('Class pricing', {'fields':(('price','currency'),)}),
+        ('Publishing', {'fields':(('published','sort_order'),)}),
+    )
     list_display = ("name", "price", "currency", "published", "sort_order")
     list_filter = ("published", "currency")
     search_fields = ("name", "experience")
@@ -64,7 +85,12 @@ class TeacherAdmin(admin.ModelAdmin):
     list_editable = ("published", "sort_order")
 
 @admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
+class CourseAdmin(ModelAdmin):
+    list_per_page = 25
+    fieldsets = (
+        ('Course details', {'fields':('title','slug','teacher','description','course_url')}),
+        ('Pricing & publishing', {'fields':(('price','currency'),('published','sort_order'))}),
+    )
     list_display = ("title", "teacher", "price", "published", "sort_order")
     list_filter = ("published", "teacher")
     search_fields = ("title", "description")
@@ -74,7 +100,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 
 @admin.register(ScholarshipApplication)
-class ScholarshipApplicationAdmin(admin.ModelAdmin):
+class ScholarshipApplicationAdmin(ModelAdmin):
     list_display = ('name', 'email', 'whatsapp', 'created_at', 'reviewed')
     list_filter = ('reviewed', 'created_at')
     search_fields = ('name', 'email', 'whatsapp', 'message')

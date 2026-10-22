@@ -1,0 +1,6 @@
+{% extends 'admin/login.html' %}
+{% block login_after %}
+<input type="hidden" name="next" value="{{ next }}" form="login-form">
+<p class="rc-login-note">Secure access for the Recitera team.</p>
+<a class="rc-login-back" href="https://www.recitera.com">← Back to Recitera</a>
+{% endblock %}

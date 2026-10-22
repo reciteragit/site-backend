@@ -10,3 +10,5 @@ stripe==16.0.0
 cryptography==50.0.2
 
 google-auth[requests]==2.62.0
+
+django-unfold==0.110.0

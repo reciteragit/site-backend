@@ -1,3 +1,5 @@
+from config.admin_badges import status_badge
+from unfold.admin import ModelAdmin, TabularInline
 from django import forms
 from django.contrib import admin, messages
 from .models import TeachingProfile, Slot, Order, Booking, EmailDelivery, Profile
@@ -19,7 +21,13 @@ class TeacherForm(forms.ModelForm):
 
 
 @admin.register(TeachingProfile)
-class TeachingAdmin(admin.ModelAdmin):
+class TeachingAdmin(ModelAdmin):
+    list_per_page=25
+    fieldsets=(
+        ('Teacher account', {'fields':('teacher','user','approved')}),
+        ('Classroom', {'fields':('timezone','meeting_provider','meeting_url'),'description':'Class links are shared with learners only after their booking is confirmed.'}),
+        ('Teaching biography', {'fields':('biography',)}),
+    )
     form=TeacherForm
     list_display=['teacher','user','timezone','approved','meeting_provider']
     search_fields=['teacher__name','user__email']
@@ -28,17 +36,25 @@ class TeachingAdmin(admin.ModelAdmin):
 
 
 @admin.register(Slot)
-class SlotAdmin(admin.ModelAdmin):
+class SlotAdmin(ModelAdmin):
+    list_per_page=50
+    list_select_related=['teacher__teacher']
+    search_fields=['teacher__teacher__name']
+    date_hierarchy='starts_at'
     list_display=['teacher','starts_at','ends_at','active']
-    list_filter=['teacher','active']
+    list_filter=['teacher','active','kind']
     readonly_fields=['id','teacher','starts_at','ends_at','active','schedule','kind']
     def has_add_permission(self,request):return False
     def has_delete_permission(self,request,obj=None):return False
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display=['id','user','amount','mode','status','created_at']
+class OrderAdmin(ModelAdmin):
+    list_per_page=25
+    date_hierarchy='created_at'
+    @admin.display(description='Status',ordering='status')
+    def payment_status(self,obj):return status_badge(obj.status)
+    list_display=['id','user','amount','mode','payment_status','created_at']
     list_filter=['status','mode']
     search_fields=['user__email','stripe_session_id']
     readonly_fields=[field.name for field in Order._meta.fields]
@@ -56,10 +72,18 @@ class BookingForm(forms.ModelForm):
 
 
 @admin.register(Booking)
-class BookingAdmin(admin.ModelAdmin):
+class BookingAdmin(ModelAdmin):
+    list_per_page=25
+    @admin.display(description='Class starts (UTC)',ordering='slot__starts_at')
+    def class_start(self,obj):return obj.slot.starts_at
+    @admin.display(description='Session')
+    def kind_label(self,obj):return 'Free trial' if obj.slot.kind=='trial' else 'Paid class'
+    @admin.display(description='Status',ordering='status')
+    def booking_status(self,obj):return status_badge(obj.status)
     form=BookingForm
-    list_display=['id','student','teacher_name','slot','status']
-    list_filter=['status']
+    list_display=['teacher_name','student','class_start','kind_label','booking_status']
+    list_filter=['status',('slot__starts_at',admin.DateFieldListFilter)]
+    list_select_related=['student','slot']
     search_fields=['student__email','teacher_name']
     readonly_fields=[field.name for field in Booking._meta.fields if field.name!='meeting_url']
     def save_model(self,request,obj,form,change):
@@ -74,7 +98,11 @@ class BookingAdmin(admin.ModelAdmin):
 
 
 @admin.register(EmailDelivery)
-class EmailAdmin(admin.ModelAdmin):
+class EmailAdmin(ModelAdmin):
+    list_per_page=25
+    search_fields=['recipient','booking__teacher_name']
+    list_filter=[('sent_at',admin.EmptyFieldListFilter)]
+    list_select_related=['booking']
     list_display=['booking','recipient','sent_at','attempts','last_error']
     readonly_fields=[field.name for field in EmailDelivery._meta.fields]
     actions=['retry']
@@ -87,7 +115,7 @@ class EmailAdmin(admin.ModelAdmin):
 
 
 @admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
+class ProfileAdmin(ModelAdmin):
     list_display=['user','timezone']
     readonly_fields=['user','timezone']
     def has_add_permission(self,request):return False
@@ -96,10 +124,31 @@ class ProfileAdmin(admin.ModelAdmin):
 from .models import GoogleIdentity
 
 @admin.register(GoogleIdentity)
-class GoogleIdentityAdmin(admin.ModelAdmin):
+class GoogleIdentityAdmin(ModelAdmin):
     list_display=['user','email','created_at']
     search_fields=['user__email','email']
     readonly_fields=[field.name for field in GoogleIdentity._meta.fields]
     def has_add_permission(self,request):return False
     def has_delete_permission(self,request,obj=None):
         return bool(obj and obj.user.has_usable_password() and super().has_delete_permission(request,obj))
+
+
+# Keep Django authentication and permissions while applying the same form widgets.
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin, GroupAdmin as DjangoGroupAdmin
+from django.contrib.auth.models import Group
+from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
+
+admin.site.unregister(get_user_model())
+admin.site.unregister(Group)
+
+@admin.register(get_user_model())
+class ReciteraUserAdmin(DjangoUserAdmin, ModelAdmin):
+    form=UserChangeForm
+    add_form=UserCreationForm
+    change_password_form=AdminPasswordChangeForm
+    list_per_page=25
+
+@admin.register(Group)
+class ReciteraGroupAdmin(DjangoGroupAdmin, ModelAdmin):
+    pass
