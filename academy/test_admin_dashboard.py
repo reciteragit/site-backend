@@ -105,6 +105,12 @@ class AdminDashboardTests(TestCase):
         self.assertTrue(saved.reviewed)
         self.assertFalse(saved.languages)
 
+    def test_theme_settings_can_be_serialized_before_django_app_setup(self):
+        # Vercel inspects Django settings before populating the app registry.
+        import os, subprocess, sys
+        process=subprocess.run([sys.executable,'-c','import json; from django.conf import settings; json.dumps(settings.UNFOLD, default=str)'],env={**os.environ,'DJANGO_SETTINGS_MODULE':'config.settings','DJANGO_DEBUG':'true'},capture_output=True,text=True)
+        self.assertEqual(process.returncode,0,process.stderr)
+
     def test_invalid_period_uses_safe_default(self):
         self.assertEqual(self.client.get(reverse('admin:index')+'?period=anything').context['dashboard']['days'],30)
         self.assertEqual(self.client.get(reverse('admin:index')+'?period=7').context['dashboard']['days'],7)

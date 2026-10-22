@@ -1,7 +1,7 @@
 """Recitera branding and permission-aware navigation for the MIT-licensed Unfold theme."""
 from django.apps import apps
 from django.templatetags.static import static
-from django.urls import reverse_lazy
+from django.urls import reverse
 
 
 def permitted(request, label):
@@ -13,7 +13,7 @@ def permitted(request, label):
 
 def item(title, icon, label):
     app, model = label.lower().split('.')
-    return {'title':title, 'icon':icon, 'link':reverse_lazy(f'admin:{app}_{model}_changelist'), 'permission':lambda request:permitted(request,label)}
+    return {'title':title, 'icon':icon, 'link':lambda request:reverse(f'admin:{app}_{model}_changelist'), 'permission':lambda request:permitted(request,label)}
 
 
 UNFOLD = {
@@ -33,7 +33,7 @@ UNFOLD = {
         'show_search':True,
         'show_all_applications':True,
         'navigation':[
-            {'items':[{'title':'Overview','icon':'space_dashboard','link':reverse_lazy('admin:index')}]},
+            {'items':[{'title':'Overview','icon':'space_dashboard','link':lambda request:reverse('admin:index')}]},
             {'title':'Academy','separator':True,'items':[
                 item('Teacher profiles','school','catalog.Teacher'),
                 item('Teaching & classrooms','video_camera_front','academy.TeachingProfile'),
@@ -65,5 +65,4 @@ UNFOLD = {
         ],
     },
     'COMMAND':{'search_models':True,'show_history':True},
-    'LOGIN':{'redirect_after':reverse_lazy('admin:index')},
 }
