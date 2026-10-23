@@ -74,12 +74,13 @@ class PaymentOrderAdmin(ModelAdmin):
     list_select_related=['donor']
     @admin.display(description='Status',ordering='status')
     def payment_status(self,obj):return status_badge(obj.status)
-    list_display=['id','purpose','donor','amount','currency','payment_status','mode','anonymous','created_at'];list_filter=['purpose','status','mode','anonymous'];search_fields=['donor__email','first_name','last_name','stripe_session_id'];readonly_fields=[f.name for f in PaymentOrder._meta.fields]
+    list_display=['id','purpose','donor','amount','currency','payment_status','mode','anonymous','created_at'];list_filter=['purpose','status','mode','anonymous'];search_fields=['donor__email','first_name','last_name','stripe_session_id','discount_code'];readonly_fields=[f.name for f in PaymentOrder._meta.fields]
     def has_add_permission(self,request):return False
     def has_delete_permission(self,request,obj=None):return False
 
 @admin.register(PaymentItem)
 class PaymentItemAdmin(ModelAdmin):
+    search_fields=['title','slug']
     list_display=['title','slug','amount','active','payment_page'];prepopulated_fields={'slug':['title']}
     def payment_page(self,obj):
         config=StripeSettings.objects.first()

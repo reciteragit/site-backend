@@ -18,6 +18,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from catalog.models import Teacher
+from catalog.discounts import ProductLine, calculate_discount
+from catalog.discount_models import normalize_code
 from catalog.payment_models import StripeSettings
 from catalog.stripe_gateway import ready, client, valid_origin
 from rest_framework.throttling import AnonRateThrottle
@@ -308,7 +310,19 @@ class Cart(AcademyView):
 
 
 def order_data(order):
-    return {'id':str(order.pk),'request_id':str(order.request_id),'status':order.status,'amount':str(order.amount),'currency':order.currency,'mode':order.mode,'expires_at':order.expires_at.isoformat(),'checkout_url':order.checkout_url if order.status in ['held','pending'] and order.expires_at>timezone.now() else ''}
+    return {'id':str(order.pk),'request_id':str(order.request_id),'status':order.status,'amount':str(order.amount),'subtotal':str(order.subtotal or order.amount),'discount_amount':str(order.discount_amount),'discount_code':order.discount_code,'currency':order.currency,'mode':order.mode,'expires_at':order.expires_at.isoformat(),'checkout_url':order.checkout_url if order.status in ['held','pending'] and order.expires_at>timezone.now() else ''}
+
+
+class CartQuote(AcademyView):
+    throttle_classes=[AcademyWriteThrottle]
+    def post(self,request):
+        class Input(serializers.Serializer):
+            discount_code=serializers.CharField(max_length=40,allow_blank=True,default='')
+        serializer=Input(data=request.data);serializer.is_valid(raise_exception=True)
+        items=list(CartItem.objects.filter(user=request.user).select_related('slot__teacher__teacher'))
+        if not items or len(items)>10:raise serializers.ValidationError('Your cart must contain between one and ten classes.')
+        lines=[ProductLine('teacher',i.slot.teacher.teacher_id,slot_price(i.slot)) for i in items]
+        return Response(calculate_discount(serializer.validated_data['discount_code'],lines,request.user).data(),headers={'Cache-Control':'private, no-store'})
 
 
 class Checkout(AcademyView):
@@ -317,6 +331,7 @@ class Checkout(AcademyView):
         class Input(serializers.Serializer):
             request_id=serializers.UUIDField()
             timezone=serializers.CharField(max_length=100)
+            discount_code=serializers.CharField(max_length=40,allow_blank=True,default="")
         s=Input(data=request.data);s.is_valid(raise_exception=True);data=s.validated_data;zone(data['timezone'])
         config=StripeSettings.objects.first()
         expire_holds()
@@ -324,6 +339,8 @@ class Checkout(AcademyView):
             User.objects.select_for_update().get(pk=request.user.pk)
             order=Order.objects.select_for_update().filter(request_id=data['request_id']).first()
             if order and order.user_id!=request.user.pk:return Response({'error':'This checkout request is already in use.'},status=409)
+            if order and 'discount_code' in request.data and normalize_code(data['discount_code'])!=order.discount_code:
+                return Response({'error':'This reservation already has a fixed discount. Resume it or wait until it expires before changing the code.'},status=409)
             if not order:
                 if Order.objects.filter(user=request.user,status__in=['held','pending']).exists():return Response({'error':'You already have a pending checkout. Open it from your account before starting another.'},status=409)
                 items=list(CartItem.objects.filter(user=request.user).select_related('slot__teacher__teacher'))
@@ -337,11 +354,12 @@ class Checkout(AcademyView):
                     t=slot.teacher.teacher
                     if slot.teacher.user_id==request.user.pk or not valid_meeting(slot.teacher.meeting_provider,slot.teacher.meeting_url) or t.currency!='CAD' or (slot.kind!='trial' and t.price<1):raise serializers.ValidationError('A teacher is not ready to accept this booking.')
                     if any(other.starts_at<slot.ends_at and other.ends_at>slot.starts_at for other in slots[index+1:]) or Booking.objects.filter(student=request.user,status__in=['held','confirmed'],slot__starts_at__lt=slot.ends_at,slot__ends_at__gt=slot.starts_at).exists():return Response({'error':'You already have a class at this time.'},status=409)
-                amount=sum((slot_price(slot) for slot in slots),Decimal('0'))
+                quote=calculate_discount(data['discount_code'],[ProductLine('teacher',slot.teacher.teacher_id,slot_price(slot)) for slot in slots],request.user,lock=True)
+                amount=quote.total
                 if amount and (not config or not config.lessons_enabled or not ready(config) or not valid_origin(config.frontend_origin)):
                     return Response({'error':'Class payments are not configured yet.'},status=503)
-                order=Order.objects.create(request_id=data['request_id'],user=request.user,email=request.user.email,amount=amount,mode=config.mode if amount else 'free',expires_at=timezone.now()+timedelta(minutes=66))
-                for slot in slots:Booking.objects.create(order=order,slot=slot,student=request.user,student_timezone=data['timezone'],teacher_timezone=slot.teacher.timezone,teacher_name=slot.teacher.teacher.name,amount=slot_price(slot),meeting_url=slot.teacher.meeting_url)
+                order=Order.objects.create(request_id=data['request_id'],user=request.user,email=request.user.email,amount=amount,subtotal=quote.subtotal,discount_amount=quote.discount,discount_code=quote.code,discount=quote.coupon,mode=config.mode if amount else 'free',expires_at=timezone.now()+timedelta(minutes=66))
+                for index,slot in enumerate(slots):Booking.objects.create(order=order,slot=slot,student=request.user,student_timezone=data['timezone'],teacher_timezone=slot.teacher.timezone,teacher_name=slot.teacher.teacher.name,original_amount=slot_price(slot),amount=quote.amounts[index],meeting_url=slot.teacher.meeting_url)
             if order.amount == 0 and order.status == 'held':
                 from .notifications import queue_confirmation, flush_mail
                 order.status='paid';order.paid_at=timezone.now();order.save(update_fields=['status','paid_at'])

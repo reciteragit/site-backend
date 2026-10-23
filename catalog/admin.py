@@ -1,6 +1,6 @@
 from unfold.admin import ModelAdmin, TabularInline
 from django.contrib import admin
-from . import payment_admin
+from . import payment_admin, discount_admin
 from .models import Teacher, Course
 from .models import VolunteerApplication, NewsletterSubscriber, ScholarshipApplication
 from .models import TeacherApplication, TeacherAttachment

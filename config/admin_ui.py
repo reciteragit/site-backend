@@ -50,6 +50,7 @@ UNFOLD = {
             ]},
             {'title':'Payments','separator':True,'items':[
                 item('Class orders','receipt_long','academy.Order'),
+                item('Discount codes','sell','catalog.DiscountCode'),
                 item('Donations & payments','payments','catalog.PaymentOrder'),
                 item('Donors','favorite','catalog.Donor'),
                 item('Payment pages','link','catalog.PaymentItem'),

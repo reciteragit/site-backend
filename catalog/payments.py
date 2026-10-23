@@ -9,15 +9,28 @@ from rest_framework import serializers
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 import stripe
+from academy.authentication import AcademyAuthentication
+from .discounts import ProductLine, calculate_discount
+from .discount_models import normalize_code
 from .forms import FormThrottle
 from .models import Course,Teacher
 from .payment_models import StripeSettings,Donor,PaymentOrder,PaymentItem,StripeEvent
 from .stripe_gateway import credentials,ready,client,valid_origin
 
+class DiscountThrottle(AnonRateThrottle):
+    scope='discount_checkout'
+    rate='20/min'
+    def get_cache_key(self,request,view):
+        identity=str(request.user.pk) if request.user.is_authenticated else self.get_ident(request)
+        return self.cache_format % {'scope':self.scope,'ident':identity}
+
+
 PATHWAYS={'general':'General Donations','prophet':'In honour of Prophet Muhammad (PBUH)','loved-ones':'In memory of loved ones','reciters':'In memory of Quran reciters'}
 class CheckoutSerializer(serializers.Serializer):
     request_id=serializers.UUIDField()
+    discount_code=serializers.CharField(max_length=40,allow_blank=True,default="")
     purpose=serializers.ChoiceField(choices=['donation','course','lesson','other'],default='donation')
     reference=serializers.CharField(max_length=200,default='general')
     amount=serializers.DecimalField(max_digits=9,decimal_places=2,min_value=Decimal('1'),max_value=Decimal('100000'),required=False)
@@ -62,8 +75,27 @@ class PaymentItemDetails(APIView):
         except serializers.ValidationError:return Response({'error':'This payment is not currently available.'},status=503)
         return Response({'title':title,'amount':str(amount),'currency':'CAD','mode':config.mode},headers={'Cache-Control':'no-store'})
 
+def product_line(purpose,reference,amount):
+    if purpose=='course':item=Course.objects.filter(slug=reference).first()
+    elif purpose=='other':item=PaymentItem.objects.filter(slug=reference).first()
+    else:item=None
+    return ProductLine(purpose,item.pk if item else 0,amount)
+
+
+class DiscountPreview(APIView):
+    permission_classes=[AllowAny];authentication_classes=[AcademyAuthentication];throttle_classes=[FormThrottle,DiscountThrottle]
+    def post(self,request):
+        class Input(serializers.Serializer):
+            purpose=serializers.ChoiceField(choices=['course','other'])
+            reference=serializers.CharField(max_length=200)
+            discount_code=serializers.CharField(max_length=40,allow_blank=True,default='')
+        s=Input(data=request.data);s.is_valid(raise_exception=True);data=s.validated_data
+        amount,_=price(data,StripeSettings.objects.first())
+        return Response(calculate_discount(data['discount_code'],[product_line(data['purpose'],data['reference'],amount)],request.user).data(),headers={'Cache-Control':'private, no-store'})
+
+
 class Checkout(APIView):
-    permission_classes=[AllowAny];authentication_classes=[];throttle_classes=[FormThrottle]
+    permission_classes=[AllowAny];authentication_classes=[AcademyAuthentication];throttle_classes=[FormThrottle,DiscountThrottle]
     def post(self,request):
         serializer=CheckoutSerializer(data=request.data);serializer.is_valid(raise_exception=True);data=serializer.validated_data
         config=StripeSettings.objects.first();amount,title=price(data,config)
@@ -72,8 +104,20 @@ class Checkout(APIView):
         email=data['email'].strip().lower()
         with transaction.atomic():
             donor,_=Donor.objects.get_or_create(email=email,defaults={k:data[k] for k in ['first_name','last_name','phone','country']})
-            order,created=PaymentOrder.objects.get_or_create(request_id=data['request_id'],defaults={'donor':donor,'first_name':data['first_name'],'last_name':data['last_name'],'phone':data['phone'],'country':data['country'],'purpose':data['purpose'],'reference':data['reference'],'title':title,'amount':amount,'comment':data['comment'],'anonymous':data['anonymous'],'mode':config.mode if config else 'test'})
-            if not created and (order.donor_id!=donor.pk or order.amount!=amount or order.purpose!=data['purpose'] or order.reference!=data['reference']):return Response({'error':'This request has already been used. Start a new payment request.'},status=409)
+            Donor.objects.select_for_update().get(pk=donor.pk)
+            order=PaymentOrder.objects.select_for_update().filter(request_id=data['request_id']).first()
+            if order:
+                if order.donor_id!=donor.pk or (order.subtotal or order.amount)!=amount or order.purpose!=data['purpose'] or order.reference!=data['reference'] or order.discount_code!=normalize_code(data['discount_code']):
+                    return Response({'error':'This request has already been used. Start a new payment request.'},status=409)
+                if order.discount_id and order.discount.allowed_user_id and (not request.user.is_authenticated or order.discount.allowed_user_id!=request.user.pk):
+                    raise serializers.ValidationError('Sign in with the eligible account to resume this discount.')
+            else:
+                quote=calculate_discount(data['discount_code'],[product_line(data['purpose'],data['reference'],amount)],request.user,lock=True)
+                order,created=PaymentOrder.objects.get_or_create(request_id=data['request_id'],defaults={'donor':donor,'first_name':data['first_name'],'last_name':data['last_name'],'phone':data['phone'],'country':data['country'],'purpose':data['purpose'],'reference':data['reference'],'title':title,'amount':quote.total,'subtotal':quote.subtotal,'discount_amount':quote.discount,'discount_code':quote.code,'discount':quote.coupon,'comment':data['comment'],'anonymous':data['anonymous'],'mode':config.mode if config else 'test'})
+                if not created and (order.donor_id!=donor.pk or (order.subtotal or order.amount)!=amount or order.purpose!=data['purpose'] or order.reference!=data['reference'] or order.discount_code!=quote.code):
+                    return Response({'error':'This request has already been used. Start a new payment request.'},status=409)
+                if created and order.amount==0:
+                    order.status='paid';order.mode='free';order.paid_at=timezone.now();order.save(update_fields=['status','mode','paid_at'])
         if order.status=='paid':return Response({'success':True,'order_id':str(order.id),'status':'paid'})
         if not ready(config):return Response({'success':True,'order_id':str(order.id),'status':order.status,'payment_ready':False},status=202)
         if order.mode!=config.mode:return Response({'error':'Payment settings changed. Please start a new request.'},status=409)
@@ -94,7 +138,7 @@ class PaymentStatus(APIView):
     def get(self,request,order_id):
         order=PaymentOrder.objects.filter(pk=order_id).first()
         if not order:return Response({'error':'Not found'},status=404)
-        return Response({'status':order.status,'amount':str(order.amount),'currency':order.currency,'purpose':order.purpose,'mode':order.mode},headers={'Cache-Control':'no-store'})
+        return Response({'status':order.status,'amount':str(order.amount),'currency':order.currency,'purpose':order.purpose,'mode':order.mode,'subtotal':str(order.subtotal or order.amount),'discount_amount':str(order.discount_amount)},headers={'Cache-Control':'no-store'})
 
 @csrf_exempt
 @require_POST

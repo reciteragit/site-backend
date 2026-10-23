@@ -38,6 +38,11 @@ class PaymentItem(models.Model):
     def __str__(self):return self.title
 
 class PaymentOrder(models.Model):
+    subtotal = models.DecimalField(max_digits=10,decimal_places=2,default=0,db_default=0)
+    discount_amount = models.DecimalField(max_digits=10,decimal_places=2,default=0,db_default=0)
+    discount_code = models.CharField(max_length=40,blank=True,default="",db_default="")
+    discount = models.ForeignKey('catalog.DiscountCode',null=True,blank=True,on_delete=models.SET_NULL,related_name='payment_orders')
+
     id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     request_id = models.UUIDField(unique=True,editable=False)
     donor = models.ForeignKey(Donor,on_delete=models.PROTECT,related_name='payments')

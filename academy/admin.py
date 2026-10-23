@@ -56,7 +56,7 @@ class OrderAdmin(ModelAdmin):
     def payment_status(self,obj):return status_badge(obj.status)
     list_display=['id','user','amount','mode','payment_status','created_at']
     list_filter=['status','mode']
-    search_fields=['user__email','stripe_session_id']
+    search_fields=['user__email','stripe_session_id','discount_code']
     readonly_fields=[field.name for field in Order._meta.fields]
     def has_add_permission(self,request):return False
     def has_delete_permission(self,request,obj=None):return False

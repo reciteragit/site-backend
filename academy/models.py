@@ -61,6 +61,11 @@ class CartItem(models.Model):
 
 
 class Order(models.Model):
+    subtotal = models.DecimalField(max_digits=10,decimal_places=2,default=0,db_default=0)
+    discount_amount = models.DecimalField(max_digits=10,decimal_places=2,default=0,db_default=0)
+    discount_code = models.CharField(max_length=40,blank=True,default="",db_default="")
+    discount = models.ForeignKey('catalog.DiscountCode',null=True,blank=True,on_delete=models.SET_NULL,related_name='class_orders')
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     request_id = models.UUIDField(unique=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -78,6 +83,7 @@ class Order(models.Model):
 
 
 class Booking(models.Model):
+    original_amount = models.DecimalField(max_digits=8,decimal_places=2,default=0,db_default=0)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='bookings')
     slot = models.ForeignKey(Slot, on_delete=models.PROTECT, related_name='bookings')
