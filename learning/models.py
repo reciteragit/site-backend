@@ -41,7 +41,7 @@ class Episode(models.Model):
     title=models.CharField(max_length=200)
     description=models.TextField(blank=True)
     video_provider=models.CharField(max_length=10,choices=[('vimeo','Vimeo'),('direct','Direct video / other host')],default='vimeo')
-    video_url=models.URLField(max_length=2000,validators=[validate_video_url],help_text='Vimeo video link (including its unlisted hash), or a direct HTTPS MP4/WebM video URL from your own host, CDN or storage. Enter a media URL, not a web page or iframe HTML.')
+    video_url=models.URLField(blank=True,max_length=2000,validators=[validate_video_url],help_text='Vimeo video link (including its unlisted hash), or a direct HTTPS MP4/WebM video URL from your own host, CDN or storage. Enter a media URL, not a web page or iframe HTML.')
     duration_seconds=models.PositiveIntegerField(default=0,validators=[MaxValueValidator(86400)],help_text='Optional duration in seconds. Zero uses the Vimeo player duration for learner progress.')
     is_free=models.BooleanField(default=False,help_text='Allow this episode as a free preview in a paid course. All episodes are accessible when the course price is zero.')
     published=models.BooleanField(default=True)
@@ -49,6 +49,7 @@ class Episode(models.Model):
     class Meta:ordering=['sort_order','id']
     def clean(self):
         super().clean()
+        if self.published and not self.video_url:raise ValidationError({'video_url':'Add a video URL before publishing this episode.'})
         if self.video_provider=='vimeo' and self.video_url:vimeo_embed(self.video_url)
     def __str__(self):return self.title
 

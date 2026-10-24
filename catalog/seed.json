@@ -233,132 +233,132 @@
       "title": "Surah Al-Ikhlas",
       "description": "Build clear pronunciation and fluent recitation through listening and guided practice.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-ikhlas-step-by-step",
+      "course_url": "",
       "price": "0",
       "currency": "CAD",
       "sort_order": 0,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-quraysh-step-by-step",
       "title": "Surah Quraysh",
       "description": "Explore Surah Quraysh with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-quraysh-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 1,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-al-asr-step-by-step",
       "title": "Surah Al-Asr",
       "description": "Explore Surah Al-Asr with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-asr-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 2,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-al-falaq-step-by-step",
       "title": "Surah Al-Falaq",
       "description": "Explore Surah Al-Falaq with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-falaq-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 3,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-al-fil-step-by-step",
       "title": "Surah Al-Fil",
       "description": "Explore Surah Al-Fil with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-fil-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 4,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-al-humazah-step-by-step",
       "title": "Surah Al-Humazah",
       "description": "Explore Surah Al-Humazah with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-humazah-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 5,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-al-kafirun-step-by-step",
       "title": "Surah Al-Kafirun",
       "description": "Explore Surah Al-Kafirun with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-kafirun-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 6,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-al-kawthar-step-by-step",
       "title": "Surah Al-Kawthar",
       "description": "Explore Surah Al-Kawthar with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-kawthar-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 7,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-al-maun-step-by-step",
       "title": "Surah Al-Ma’un",
       "description": "Explore Surah Al-Ma’un with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-maun-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 8,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-al-masad-step-by-step",
       "title": "Surah Al-Masad",
       "description": "Explore Surah Al-Masad with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-al-masad-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 9,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-an-nas-step-by-step",
       "title": "Surah An-Nas",
       "description": "Explore Surah An-Nas with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-an-nas-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 10,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     },
     {
       "slug": "surah-an-nasr-step-by-step",
       "title": "Surah An-Nasr",
       "description": "Explore Surah An-Nasr with a focused lesson in the Step by Step collection.",
       "teacher_slug": "mohammed-atalla",
-      "course_url": "https://academy.recitera.com/course/surah-an-nasr-step-by-step",
+      "course_url": "",
       "price": "5",
       "currency": "CAD",
       "sort_order": 11,
-      "delivery_mode": "external"
+      "delivery_mode": "platform"
     }
   ]
 }

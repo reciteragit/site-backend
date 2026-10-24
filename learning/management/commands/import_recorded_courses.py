@@ -48,7 +48,7 @@ class Command(BaseCommand):
                 if len(existing) > 1:
                     raise CommandError(f'{slug}: multiple episodes exist; manage them in admin to avoid replacing a curriculum.')
                 episode = existing[0] if existing else Episode(course=course)
-                if existing and vimeo_embed(episode.video_url) != embed:
+                if existing and episode.video_url and vimeo_embed(episode.video_url) != embed:
                     raise CommandError(f'{slug}: a different video already exists; review it in admin.')
                 episode.title = course.title
                 episode.video_provider = 'vimeo'

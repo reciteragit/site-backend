@@ -1,4 +1,5 @@
 import json
+from importlib import import_module
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -6,6 +7,9 @@ from tempfile import TemporaryDirectory
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
+from django.apps import apps
+from django.db import connection
+from django.core.exceptions import ValidationError
 
 from academy.tests import fixture
 from catalog.models import Course
@@ -56,3 +60,27 @@ class RecordedCourseImportTests(TestCase):
         self.assertFalse(Episode.objects.exists())
         self.course.refresh_from_db()
         self.assertEqual(self.course.delivery_mode, 'external')
+
+    def test_catalogue_conversion_creates_editable_draft_without_opening_checkout(self):
+        from rest_framework.test import APIClient
+        migration = import_module('learning.migrations.0003_internal_surah_courses')
+        self.course.slug = migration.SLUGS[0]
+        self.course.save()
+        with connection.schema_editor(atomic=False) as editor:
+            migration.convert_courses(apps, editor)
+            migration.convert_courses(apps, editor)
+        self.course.refresh_from_db()
+        self.assertEqual(self.course.delivery_mode, 'platform')
+        self.assertEqual(self.course.course_url, '')
+        self.assertEqual(self.course.price, 5)
+        episode = Episode.objects.get(course=self.course)
+        self.assertEqual(episode.video_url, '')
+        self.assertFalse(episode.published)
+        episode.full_clean()
+        episode.published = True
+        with self.assertRaises(ValidationError):
+            episode.full_clean()
+        response = APIClient().get(f'/api/academy/learning/courses/{self.course.slug}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['ready'])
+        self.assertEqual(response.data['episodes'], [])
