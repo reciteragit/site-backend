@@ -22,6 +22,7 @@ class DiscountCode(models.Model):
     teachers = models.ManyToManyField('catalog.Teacher',blank=True,related_name='discount_codes',help_text='Paid class bookings with these teachers.')
     courses = models.ManyToManyField('catalog.Course',blank=True,related_name='discount_codes')
     payment_items = models.ManyToManyField('catalog.PaymentItem',blank=True,related_name='discount_codes',verbose_name='Payment-page products')
+    bundles = models.ManyToManyField("learning.CourseBundle",blank=True,related_name="discount_codes")
     allowed_user = models.ForeignKey(settings.AUTH_USER_MODEL,null=True,blank=True,on_delete=models.PROTECT,related_name='discount_codes',help_text='Optional: only this signed-in account can use the code. Leave empty for all customers.')
     starts_at = models.DateTimeField(null=True,blank=True)
     ends_at = models.DateTimeField(null=True,blank=True)

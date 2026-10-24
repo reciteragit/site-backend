@@ -85,11 +85,13 @@ class Teacher(models.Model):
         return self.name
 
 class Course(models.Model):
+    delivery_mode = models.CharField(max_length=10,choices=[("platform","Recitera platform"),("external","External academy link")],default="platform",db_default="platform")
+    image = models.CharField(max_length=500,blank=True,default="",db_default="")
     slug = models.SlugField(unique=True)
     title = models.CharField(max_length=200)
     description = models.TextField()
     teacher = models.ForeignKey(Teacher, on_delete=models.PROTECT, related_name="courses")
-    course_url = models.URLField()
+    course_url = models.URLField(blank=True,help_text="Only needed for an external academy course.")
     price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
     currency = models.CharField(max_length=3, default="CAD")
     sort_order = models.PositiveIntegerField(default=0)

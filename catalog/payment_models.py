@@ -1,4 +1,5 @@
 import uuid
+from django.conf import settings
 from decimal import Decimal
 from django.db import models
 from django.core.validators import MinValueValidator
@@ -38,6 +39,7 @@ class PaymentItem(models.Model):
     def __str__(self):return self.title
 
 class PaymentOrder(models.Model):
+    buyer = models.ForeignKey(settings.AUTH_USER_MODEL,null=True,blank=True,on_delete=models.PROTECT,related_name="course_payment_orders")
     subtotal = models.DecimalField(max_digits=10,decimal_places=2,default=0,db_default=0)
     discount_amount = models.DecimalField(max_digits=10,decimal_places=2,default=0,db_default=0)
     discount_code = models.CharField(max_length=40,blank=True,default="",db_default="")
@@ -48,7 +50,7 @@ class PaymentOrder(models.Model):
     donor = models.ForeignKey(Donor,on_delete=models.PROTECT,related_name='payments')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100,blank=True)
-    purpose = models.CharField(max_length=20,choices=[('donation','Donation'),('course','Course'),('lesson','Lesson'),('other','Other payment')])
+    purpose = models.CharField(max_length=20,choices=[('donation','Donation'),('course','Course'),('lesson','Lesson'),('other','Other payment'),('bundle','Course package')])
     phone = models.CharField(max_length=40,blank=True)
     country = models.CharField(max_length=100,blank=True)
     reference = models.CharField(max_length=200,default='general')

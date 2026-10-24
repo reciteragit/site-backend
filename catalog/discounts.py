@@ -40,8 +40,8 @@ def calculate_discount(code,lines,user=None,*,lock=False):
         raise ValidationError({'discount_code':'This discount code is invalid, inactive or outside its valid dates.'})
     if coupon.allowed_user_id and (not user or not user.is_authenticated or coupon.allowed_user_id!=user.pk):
         raise ValidationError({'discount_code':'This discount code is not available for this account. Sign in with the eligible account.'})
-    selections={} if coupon.all_products else {'teacher':set(coupon.teachers.values_list('pk',flat=True)),'course':set(coupon.courses.values_list('pk',flat=True)),'other':set(coupon.payment_items.values_list('pk',flat=True))}
-    eligible=[i for i,line in enumerate(lines) if line.amount>0 and line.kind in ['teacher','course','other'] and (coupon.all_products or line.product_id in selections.get(line.kind,set())) and (coupon.minimum_basis!='individual_product' or line.amount>=coupon.minimum_amount)]
+    selections={} if coupon.all_products else {'teacher':set(coupon.teachers.values_list('pk',flat=True)),'course':set(coupon.courses.values_list('pk',flat=True)),'other':set(coupon.payment_items.values_list('pk',flat=True)),'bundle':set(coupon.bundles.values_list('pk',flat=True))}
+    eligible=[i for i,line in enumerate(lines) if line.amount>0 and line.kind in ['teacher','course','other','bundle'] and (coupon.all_products or line.product_id in selections.get(line.kind,set())) and (coupon.minimum_basis!='individual_product' or line.amount>=coupon.minimum_amount)]
     base=sum((lines[i].amount for i in eligible),ZERO)
     if not base:
         raise ValidationError({'discount_code':'This code does not apply to these products or their individual prices.'})

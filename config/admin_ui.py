@@ -40,6 +40,10 @@ UNFOLD = {
                 item('Class bookings','calendar_month','academy.Booking'),
                 item('Available time slots','schedule','academy.Slot'),
                 item('Recorded courses','play_lesson','catalog.Course'),
+                item('Episode videos','video_library','learning.Episode'),
+                item('Course packages','inventory_2','learning.CourseBundle'),
+                item('Learner course access','how_to_reg','learning.Enrollment'),
+                item('Learning progress','monitoring','learning.EpisodeProgress'),
             ]},
             {'title':'People & applications','separator':True,'items':[
                 item('Teacher applications','person_add','catalog.TeacherApplication'),

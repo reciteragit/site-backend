@@ -1,3 +1,4 @@
+from django import forms
 from unfold.admin import ModelAdmin, TabularInline
 from django.contrib import admin
 from . import payment_admin, discount_admin
@@ -84,11 +85,28 @@ class TeacherAdmin(ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
     list_editable = ("published", "sort_order")
 
+class CourseForm(forms.ModelForm):
+    class Meta:model=Course;fields='__all__'
+    def clean(self):
+        data=super().clean()
+        if data.get('delivery_mode')=='platform' and data.get('currency')!='CAD':self.add_error('currency','Recitera course checkout currently uses CAD.')
+        if self.instance.pk and self.instance.delivery_mode=='platform' and data.get('delivery_mode')=='external':
+            from learning.models import Enrollment,CoursePurchase
+            if Enrollment.objects.filter(course=self.instance).exists() or CoursePurchase.objects.filter(course=self.instance).exists():self.add_error('delivery_mode','This course has enrolments or purchases. Unpublish it instead of changing its delivery mode.')
+        if data.get('delivery_mode')=='external' and not data.get('course_url'):self.add_error('course_url','Enter the external academy course URL.')
+        return data
+
+
 @admin.register(Course)
 class CourseAdmin(ModelAdmin):
+    form=CourseForm
+    from learning.admin import EpisodeInline
+    inlines=[EpisodeInline]
+    def get_changeform_initial_data(self,request):
+        return {**super().get_changeform_initial_data(request),"delivery_mode":"platform","published":False}
     list_per_page = 25
     fieldsets = (
-        ('Course details', {'fields':('title','slug','teacher','description','course_url')}),
+        ('Course details', {'fields':('title','slug','teacher','delivery_mode','image','description','course_url')}),
         ('Pricing & publishing', {'fields':(('price','currency'),('published','sort_order'))}),
     )
     list_display = ("title", "teacher", "price", "published", "sort_order")

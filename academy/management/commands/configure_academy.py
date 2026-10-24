@@ -8,6 +8,8 @@ class Command(BaseCommand):
     help='Enable reserved class checkout only when explicitly configured and Stripe is ready.'
     def handle(self,*args,**options):
         call_command('import_teacher_accounts', stdout=self.stdout)
+        if os.getenv('LEARNING_CONFIGURE','false').lower()=='true':
+            call_command('configure_learning',stdout=self.stdout)
         if os.getenv('ACADEMY_PAYMENTS_ENABLED','false').lower()!='true':
             self.stdout.write('Academy payment setup not requested; existing settings preserved.');return
         config=StripeSettings.objects.first()

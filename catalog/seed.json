@@ -236,7 +236,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-ikhlas-step-by-step",
       "price": "0",
       "currency": "CAD",
-      "sort_order": 0
+      "sort_order": 0,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-quraysh-step-by-step",
@@ -246,7 +247,8 @@
       "course_url": "https://academy.recitera.com/course/surah-quraysh-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 1
+      "sort_order": 1,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-al-asr-step-by-step",
@@ -256,7 +258,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-asr-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 2
+      "sort_order": 2,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-al-falaq-step-by-step",
@@ -266,7 +269,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-falaq-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 3
+      "sort_order": 3,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-al-fil-step-by-step",
@@ -276,7 +280,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-fil-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 4
+      "sort_order": 4,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-al-humazah-step-by-step",
@@ -286,7 +291,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-humazah-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 5
+      "sort_order": 5,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-al-kafirun-step-by-step",
@@ -296,7 +302,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-kafirun-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 6
+      "sort_order": 6,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-al-kawthar-step-by-step",
@@ -306,7 +313,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-kawthar-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 7
+      "sort_order": 7,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-al-maun-step-by-step",
@@ -316,7 +324,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-maun-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 8
+      "sort_order": 8,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-al-masad-step-by-step",
@@ -326,7 +335,8 @@
       "course_url": "https://academy.recitera.com/course/surah-al-masad-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 9
+      "sort_order": 9,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-an-nas-step-by-step",
@@ -336,7 +346,8 @@
       "course_url": "https://academy.recitera.com/course/surah-an-nas-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 10
+      "sort_order": 10,
+      "delivery_mode": "external"
     },
     {
       "slug": "surah-an-nasr-step-by-step",
@@ -346,7 +357,8 @@
       "course_url": "https://academy.recitera.com/course/surah-an-nasr-step-by-step",
       "price": "5",
       "currency": "CAD",
-      "sort_order": 11
+      "sort_order": 11,
+      "delivery_mode": "external"
     }
   ]
 }
