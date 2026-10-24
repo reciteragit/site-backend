@@ -42,3 +42,9 @@ Course purchases use the existing signed Stripe webhook and encrypted connection
 Migrations preserve legacy external courses and existing purchases. Existing guest payment records are not silently turned into account entitlements based on an unverified email.
 
 `learning.tests` covers public/paid playback separation, direct/Vimeo URL validation, authenticated buyer identity, webhook amount verification, free enrolment, full coupons, package price/access snapshots, per-user progress and revoked access. Browser verification uses an isolated PostgreSQL database and local media fixtures; no real charges or production demo records are needed.
+
+## Importing the existing twelve Surah courses
+
+`learning/recorded_course_import.json` maps the twelve user-supplied Vimeo video IDs to the existing catalogue in the supplied order. Playback URLs are intentionally empty: Vimeo Review share tokens are not unlisted playback hashes, and must not be substituted into player URLs. Obtain each video's Share/Embed URL from Vimeo, confirm embedding is permitted on the Recitera domain, then populate `video_url` in a private working copy of the manifest. Do not commit private Review tokens.
+
+Validate with `python manage.py import_recorded_courses /path/to/manifest.json`. After checking the video-to-course mapping and playback, run the same command with `--apply` against the production database. The import validates every entry before any write, preserves current prices, teachers, descriptions, publication settings and old external URLs, and switches delivery to the internal course page. Repeating the import does not duplicate episodes; conflicting videos or existing multi-episode curricula require manual review in admin. This command is intentionally not part of the build, so subsequent admin edits are not overwritten.
