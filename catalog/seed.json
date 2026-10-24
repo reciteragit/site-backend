@@ -2,7 +2,7 @@
   "teachers": [
     {
       "slug": "selsebil-benelhaj-sghaier",
-      "name": "Selsebil Benelhaj Sghaier",
+      "name": "Selsebil Benelhaj",
       "experience": "5+ years",
       "languages": [
         "English",
@@ -64,7 +64,7 @@
     },
     {
       "slug": "amir-hossein-rezaaee",
-      "name": "Amir Hossein Rezaaee",
+      "name": "Amir Hossein",
       "experience": "1+ years",
       "languages": [
         "English"
@@ -103,7 +103,7 @@
     },
     {
       "slug": "setayesh-zahra-rezaaee",
-      "name": "Setayesh Zahra Rezaaee",
+      "name": "Setayesh Zahra",
       "experience": "1+ years",
       "languages": [
         "English"
@@ -163,7 +163,7 @@
     },
     {
       "slug": "ahmed-ayman-elshazly",
-      "name": "Ahmed Ayman Elshazly",
+      "name": "Ahmed Ayman",
       "experience": "5 years",
       "languages": [
         "Arabic"
