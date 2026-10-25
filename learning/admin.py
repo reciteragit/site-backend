@@ -1,5 +1,6 @@
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from unfold.admin import ModelAdmin,TabularInline
 from .models import Episode,CourseBundle,Enrollment,EpisodeProgress,CoursePurchase
 
@@ -13,12 +14,31 @@ class EpisodeInline(TabularInline):
 
 @admin.register(Episode)
 class EpisodeAdmin(ModelAdmin):
+    actions=['publish_episodes']
     list_display=['title','course','is_free','duration_seconds','published','sort_order']
     list_filter=['is_free','published','course']
     search_fields=['title','course__title']
     autocomplete_fields=['course']
     list_select_related=['course']
     fieldsets=(('Episode',{'fields':('course','title','description','sort_order')}),('Video & access',{'fields':('video_provider','video_url','duration_seconds','is_free','published')}))
+
+    @admin.action(description='Publish selected episodes with valid video links', permissions=['change'])
+    def publish_episodes(self,request,queryset):
+        published=skipped=0
+        for episode in queryset:
+            episode.published=True
+            try:episode.full_clean()
+            except ValidationError:
+                skipped+=1
+                continue
+            episode.save(update_fields=['published'])
+            published+=1
+        self.message_user(request,f'{published} episodes published; {skipped} skipped because their video or episode settings are incomplete.',messages.WARNING if skipped else messages.SUCCESS)
+
+    def save_model(self,request,obj,form,change):
+        super().save_model(request,obj,form,change)
+        if not obj.published:
+            self.message_user(request,'This episode is saved as a draft. Enable Published to show it on the website and open course enrolment.',messages.WARNING)
 
 
 class BundleForm(forms.ModelForm):

@@ -84,3 +84,28 @@ class RecordedCourseImportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data['ready'])
         self.assertEqual(response.data['episodes'], [])
+
+    def test_configured_placeholders_publish_but_blank_and_unrelated_drafts_stay_hidden(self):
+        from rest_framework.test import APIClient
+        migration = import_module('learning.migrations.0004_publish_configured_surah_episodes')
+        slugs = import_module('learning.migrations.0003_internal_surah_courses').SLUGS
+        self.course.slug = slugs[0]
+        self.course.delivery_mode = 'platform'
+        self.course.save()
+        valid = Episode.objects.create(course=self.course, title='Ready', video_url='https://vimeo.com/123456/abc123', published=False)
+        blank = Episode.objects.create(course=self.course, title='Not ready', video_url='', published=False)
+        invalid = Episode.objects.create(course=self.course, title='Review link', video_url='https://vimeo.com/reviews/token/videos/123456', published=False)
+        other = Course.objects.create(slug='unrelated-draft',title='Other',teacher=self.course.teacher,price=5,delivery_mode='platform')
+        draft = Episode.objects.create(course=other,title='Intentional draft',video_url='https://vimeo.com/123456',published=False)
+        with connection.schema_editor(atomic=False) as editor:
+            migration.publish_configured_episodes(apps, editor)
+            migration.publish_configured_episodes(apps, editor)
+        for episode, expected in [(valid,True),(blank,False),(invalid,False),(draft,False)]:
+            episode.refresh_from_db()
+            self.assertEqual(episode.published, expected)
+        response = APIClient().get(f'/api/academy/learning/courses/{self.course.slug}/')
+        self.assertTrue(response.data['ready'])
+        self.assertEqual(response.data['episode_count'], 1)
+        self.assertFalse(response.data['episodes'][0]['accessible'])
+        from learning.services import purchase_courses
+        self.assertEqual(purchase_courses('course',self.course.slug), [self.course])
