@@ -109,3 +109,33 @@ class RecordedCourseImportTests(TestCase):
         self.assertFalse(response.data['episodes'][0]['accessible'])
         from learning.services import purchase_courses
         self.assertEqual(purchase_courses('course',self.course.slug), [self.course])
+
+    def test_ready_stripe_course_checkout_is_enabled_without_changing_mode(self):
+        from catalog.payment_models import StripeSettings
+        from rest_framework.test import APIClient
+        migration = import_module('catalog.migrations.0017_enable_ready_course_checkout')
+        self.course.delivery_mode = 'platform'
+        self.course.save()
+        Episode.objects.create(course=self.course,title='Lesson',video_url='https://vimeo.com/123456',published=True)
+        config = StripeSettings.objects.first()
+        config.courses_enabled = False
+        config.save()
+        mode = config.mode
+        url = f'/api/payments/items/course/{self.course.slug}/'
+        self.assertEqual(APIClient().get(url).status_code, 503)
+        with connection.schema_editor(atomic=False) as editor:
+            migration.enable_course_checkout(apps, editor)
+            migration.enable_course_checkout(apps, editor)
+        config.refresh_from_db()
+        self.assertTrue(config.courses_enabled)
+        self.assertEqual(config.mode, mode)
+        response = APIClient().get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['amount'], '5.00')
+        config.courses_enabled = False
+        config.enabled = False
+        config.save()
+        with connection.schema_editor(atomic=False) as editor:
+            migration.enable_course_checkout(apps, editor)
+        config.refresh_from_db()
+        self.assertFalse(config.courses_enabled)
