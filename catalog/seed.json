@@ -225,6 +225,29 @@
         "Pronunciation Correction"
       ],
       "biography": "Senior Quran & Tajweed Teacher\nYoussef Benali es un profesor senior del Corán con 21 años de experiencia en la enseñanza. Reside en España y enseña principalmente en español.\nEstá especializado en Tajwid, recitación correcta del Corán, lectura fluida, memorización y corrección de la pronunciación y de los errores más comunes en la recitación. Su método de enseñanza es claro, paciente y adaptado al nivel y al ritmo de cada estudiante, desde principiantes hasta alumnos que desean perfeccionar su recitación."
+    },
+    {
+      "slug": "muhammad-dowek",
+      "name": "Muhammad Dowek",
+      "experience": "6 years",
+      "languages": [
+        "English",
+        "Arabic"
+      ],
+      "image": "/assets/muhammad-dowek.png",
+      "profile_url": "https://www.recitera.com/teachers/muhammad-dowek",
+      "price": "30.00",
+      "currency": "CAD",
+      "sort_order": 11,
+      "published": true,
+      "based_in": "Egypt",
+      "specialities": [
+        "Quran",
+        "Tajweed",
+        "Arabic",
+        "Teaching Kids"
+      ],
+      "biography": "Muhammad Dowek, also known as Muhammad Ahmad, is a Quran, Tajweed and Arabic teacher based in Egypt with 6 years of teaching experience.\nHe teaches in English and Arabic and welcomes children.\nTeaching preferences: five days a week, with Tuesdays and Fridays off. His teaching timezone is Africa/Cairo. Exact teaching hours will be published in his availability calendar."
     }
   ],
   "courses": [
