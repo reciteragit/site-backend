@@ -52,7 +52,7 @@ def schedule_data(schedule):
     return {'kind': schedule.kind, 'timezone': schedule.timezone, 'start_date': schedule.start_date.isoformat(), 'end_date': schedule.end_date.isoformat(), 'duration_minutes': schedule.duration_minutes, 'weekly': schedule.weekly}
 
 
-def save_schedule(profile, data):
+def expand_schedule(data):
     now = timezone.now()
     duration = timedelta(minutes=data['duration_minutes'])
     weekly = {d['day']: d['ranges'] for d in data['weekly']}
@@ -78,6 +78,12 @@ def save_schedule(profile, data):
                 if len(desired) > 3000:
                     raise serializers.ValidationError('This schedule exceeds 3,000 classes. Choose a shorter date range or fewer hours.')
         day += timedelta(days=1)
+    return desired, skipped_dst
+
+
+def save_schedule(profile, data):
+    now = timezone.now()
+    desired, skipped_dst = expand_schedule(data)
     with transaction.atomic():
         profile = TeachingProfile.objects.select_for_update().get(pk=profile.pk)
         schedule, _ = AvailabilitySchedule.objects.get_or_create(teacher=profile, kind=data.get('kind', 'class'), defaults=data)

@@ -39,6 +39,7 @@ UNFOLD = {
                 item('Teaching & classrooms','video_camera_front','academy.TeachingProfile'),
                 item('Class bookings','calendar_month','academy.Booking'),
                 item('Cancellation requests','event_busy','academy.CancellationRequest'),
+                item('Weekly availability','date_range','academy.AvailabilitySchedule'),
                 item('Available time slots','schedule','academy.Slot'),
                 item('Recorded courses','play_lesson','catalog.Course'),
                 item('Episode videos','video_library','learning.Episode'),

@@ -27,11 +27,19 @@ class TeachingAdmin(ModelAdmin):
         ('Teacher account', {'fields':('teacher','user','approved')}),
         ('Classroom', {'fields':('timezone','meeting_provider','meeting_url'),'description':'Class links are shared with learners only after their booking is confirmed.'}),
         ('Teaching biography', {'fields':('biography',)}),
+        ('Scheduling', {'fields':('weekly_availability',)}),
     )
     form=TeacherForm
     list_display=['teacher','user','timezone','approved','meeting_provider']
     search_fields=['teacher__name','user__email']
     list_filter=['approved','meeting_provider']
+    readonly_fields=['weekly_availability']
+    @admin.display(description='Weekly availability')
+    def weekly_availability(self,obj):
+        from django.urls import reverse
+        from django.utils.html import format_html
+        if not obj or not obj.pk:return 'Save the teaching account first.'
+        return format_html('<a href="{}?teacher__id__exact={}">Manage weekly schedules</a> · <a href="{}?teacher={}">Add schedule</a>',reverse('admin:academy_availabilityschedule_changelist'),obj.pk,reverse('admin:academy_availabilityschedule_add'),obj.pk)
     autocomplete_fields=['teacher','user']
 
 
@@ -175,3 +183,6 @@ class BookingNoticeAdmin(ModelAdmin):
     readonly_fields=[field.name for field in BookingNotice._meta.fields]
     def has_add_permission(self,request):return False
     def has_delete_permission(self,request,obj=None):return False
+
+# Register the protected weekly scheduling editor.
+from . import schedule_admin

@@ -1,0 +1,9 @@
+# Weekly availability editor
+
+Teachers open `/account/teaching` → **Set your availability**. Paid classes and free 15-minute trials have separate plans. Set the teaching timezone, inclusive date range, duration and up to six same-day ranges per weekday. **Copy to weekdays** replaces Monday–Friday ranges in the unsaved form. The preview counts complete slots in a typical week; the saved result reports actual generated slots after DST and overlap checks. Expired date ranges are advanced in the teacher form so the same weekly hours can be reused.
+
+Administrators open Django admin → **Academy → Weekly availability** (`/admin/academy/availabilityschedule/`). Use **Add availability schedule** to choose a registered teaching account and session type. Existing plans can be edited from the list; the teacher and session type are immutable after creation to avoid orphaning or moving another teacher's slots. **Teaching & classrooms** also has shortcuts to each teacher's plans. A public teacher must first be linked to a teaching user account so bookings and teacher notifications have an owner.
+
+The admin form uses a visual weekday/time editor rather than raw JSON and runs the same `ScheduleInput`, DST validation and `save_schedule` service as the teacher dashboard. Generation is capped at 180 days / 3,000 slots. Overlapping or too-short ranges are rejected before writes. Held/confirmed bookings, manual slots and other session plans block overlaps and retain their UTC times. Saving replaces only free future slots from this exact plan. Admin add/change permissions are required; schedules cannot be deleted through admin.
+
+Custom admin assets are under `academy/static/academy/`; the production build explicitly runs `collectstatic` so the widget is included in the deployed static manifest.
