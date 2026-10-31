@@ -93,7 +93,7 @@ class Booking(models.Model):
     teacher_name = models.CharField(max_length=120)
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     meeting_url = models.URLField(max_length=1000)
-    status = models.CharField(max_length=20, default='held', choices=[(v,v) for v in ['held','confirmed','expired','failed','payment_review']])
+    status = models.CharField(max_length=20, default='held', choices=[(v,v) for v in ['held','confirmed','cancelled','expired','failed','payment_review']])
     class Meta:
         ordering = ['slot__starts_at']
         constraints = [models.UniqueConstraint(fields=['slot'], condition=Q(status__in=['held','confirmed']), name='academy_one_active_booking_per_slot')]
@@ -130,3 +130,26 @@ class GoogleAuthorization(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     expires_at = models.DateTimeField()
     consumed_at = models.DateTimeField(null=True, blank=True)
+
+
+class CancellationRequest(models.Model):
+    booking = models.OneToOneField(Booking, on_delete=models.PROTECT, related_name='cancellation_request')
+    reason = models.TextField(blank=True, max_length=2000)
+    status = models.CharField(max_length=12, choices=[('pending','Pending'),('approved','Approved'),('declined','Declined')], default='pending')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+
+class BookingNotice(models.Model):
+    booking = models.ForeignKey(Booking, on_delete=models.PROTECT, related_name='notices')
+    recipient = models.EmailField()
+    recipient_timezone = models.CharField(max_length=100)
+    kind = models.CharField(max_length=24, choices=[(v,v) for v in ['reminder_24h','reminder_30m','cancellation_request','cancellation_approved','cancellation_declined']])
+    due_at = models.DateTimeField()
+    expires_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveIntegerField(default=0)
+    leased_until = models.DateTimeField(null=True, blank=True)
+    last_error = models.CharField(max_length=100, blank=True)
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['booking','recipient','kind'], name='academy_unique_booking_notice')]

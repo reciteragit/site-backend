@@ -396,6 +396,12 @@ class Checkout(AcademyView):
 
 def booking_data(booking,viewer):
     row={'id':str(booking.id),'order_id':str(booking.order_id),'teacher':booking.teacher_name,'teacher_slug':booking.slot.teacher.teacher.slug,'starts_at':booking.slot.starts_at.isoformat(),'ends_at':booking.slot.ends_at.isoformat(),'timezone':booking.student_timezone,'status':booking.status,'kind':booking.slot.kind,'amount':str(booking.amount),'currency':'CAD','mode':booking.order.mode,'meeting_url':booking.meeting_url if booking.status=='confirmed' else '', 'email_status': 'sent' if booking.emails.filter(recipient=viewer.email,sent_at__isnull=False).exists() else 'queued' if booking.status=='confirmed' else 'not_sent'}
+    from .calendar_links import calendar_links
+    from .models import CancellationRequest
+    cancellation=CancellationRequest.objects.filter(booking=booking).first()
+    row['cancellation']={'status':cancellation.status,'reason':cancellation.reason,'requested_at':cancellation.requested_at.isoformat()} if cancellation else None
+    row['can_request_cancellation']=booking.student_id==viewer.pk and booking.status=='confirmed' and not cancellation and booking.slot.starts_at>=timezone.now()+timedelta(hours=24)
+    row['calendar_links']=calendar_links(booking) if booking.status=='confirmed' else {}
     if booking.slot.teacher.user_id==viewer.pk:row.update(student_name=booking.student.get_full_name(),student_email=booking.student.email)
     return row
 
@@ -410,13 +416,13 @@ class MyBookings(AcademyView):
 class TeachingBookings(AcademyView):
     def get(self,request):
         p=my_teacher(request.user)
-        rows=Booking.objects.filter(slot__teacher=p,status='confirmed').select_related('slot__teacher__teacher','order','student').prefetch_related('emails').order_by('slot__starts_at')[:200]
+        rows=Booking.objects.filter(slot__teacher=p,status__in=['confirmed','cancelled']).select_related('slot__teacher__teacher','order','student').prefetch_related('emails').order_by('slot__starts_at')[:200]
         return Response([booking_data(b,request.user) for b in rows])
 
 
 class BookingCalendar(AcademyView):
     def get(self,request,booking_id):
-        b=Booking.objects.select_related('slot__teacher','order').filter(pk=booking_id,status='confirmed').first()
+        b=Booking.objects.select_related('slot__teacher','order').filter(pk=booking_id,status__in=['confirmed','cancelled']).first()
         if not b or (b.student_id!=request.user.pk and b.slot.teacher.user_id!=request.user.pk):raise NotFound('Booking not found.')
         response=HttpResponse(calendar(b),content_type='text/calendar; charset=utf-8')
         response['Content-Disposition']='attachment; filename="recitera-class.ics"'
@@ -436,7 +442,10 @@ class ScheduledMail(AcademyView):
     def get(self,request):
         import os,hmac
         secret=os.getenv('CRON_SECRET','')
-        if not secret or not hmac.compare_digest(request.headers.get('Authorization',''),f'Bearer {secret}'):raise PermissionDenied('Not authorized.')
+        from .workflow_auth import workflow_authorized
+        authorization=request.headers.get('Authorization','')
+        if not ((secret and hmac.compare_digest(authorization,f'Bearer {secret}')) or (authorization.startswith('Bearer ') and workflow_authorized(authorization[7:]))):raise PermissionDenied('Not authorized.')
         from .notifications import flush_mail
         expire_holds()
-        return Response({'sent':flush_mail(20)})
+        from .booking_notices import flush_notices
+        return Response({'sent':flush_mail(10),'notices_sent':flush_notices(20)})

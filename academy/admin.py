@@ -152,3 +152,26 @@ class ReciteraUserAdmin(DjangoUserAdmin, ModelAdmin):
 @admin.register(Group)
 class ReciteraGroupAdmin(DjangoGroupAdmin, ModelAdmin):
     pass
+
+
+from .models import BookingNotice, CancellationRequest
+
+
+@admin.register(CancellationRequest)
+class CancellationRequestAdmin(ModelAdmin):
+    list_display=['booking','status','requested_at','decided_at']
+    list_filter=['status']
+    search_fields=['booking__student__email','booking__teacher_name']
+    readonly_fields=[field.name for field in CancellationRequest._meta.fields]
+    def has_add_permission(self,request):return False
+    def has_delete_permission(self,request,obj=None):return False
+
+
+@admin.register(BookingNotice)
+class BookingNoticeAdmin(ModelAdmin):
+    list_display=['booking','recipient','kind','due_at','sent_at','attempts','last_error']
+    list_filter=['kind','sent_at']
+    search_fields=['recipient','booking__teacher_name']
+    readonly_fields=[field.name for field in BookingNotice._meta.fields]
+    def has_add_permission(self,request):return False
+    def has_delete_permission(self,request,obj=None):return False

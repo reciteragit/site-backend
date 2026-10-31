@@ -1,0 +1,26 @@
+name: Class reminders and booking notifications
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  id-token: write
+concurrency:
+  group: recitera-class-reminders
+  cancel-in-progress: false
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Deliver due reminders using short-lived workflow identity
+        shell: python
+        run: |
+          import json, os, urllib.request
+          endpoint = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'] + '&audience=recitera-class-reminders'
+          request = urllib.request.Request(endpoint, headers={'Authorization': 'Bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']})
+          with urllib.request.urlopen(request, timeout=20) as response:
+              token = json.load(response)['value']
+          request = urllib.request.Request('https://site-backend-one.vercel.app/api/academy/internal/send-mail/', headers={'Authorization': 'Bearer ' + token})
+          with urllib.request.urlopen(request, timeout=65) as response:
+              print(json.load(response))

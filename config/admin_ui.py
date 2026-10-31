@@ -38,6 +38,7 @@ UNFOLD = {
                 item('Teacher profiles','school','catalog.Teacher'),
                 item('Teaching & classrooms','video_camera_front','academy.TeachingProfile'),
                 item('Class bookings','calendar_month','academy.Booking'),
+                item('Cancellation requests','event_busy','academy.CancellationRequest'),
                 item('Available time slots','schedule','academy.Slot'),
                 item('Recorded courses','play_lesson','catalog.Course'),
                 item('Episode videos','video_library','learning.Episode'),
@@ -62,6 +63,7 @@ UNFOLD = {
             ]},
             {'title':'Administration','separator':True,'items':[
                 item('Confirmation emails','outgoing_mail','academy.EmailDelivery'),
+                item('Reminders & cancellation emails','notifications','academy.BookingNotice'),
                 item('Users','manage_accounts','auth.User'),
                 item('Groups & permissions','admin_panel_settings','auth.Group'),
                 item('Google connections','account_circle','academy.GoogleIdentity'),

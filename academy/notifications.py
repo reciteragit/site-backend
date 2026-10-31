@@ -10,7 +10,9 @@ from .models import EmailDelivery
 def calendar(booking):
     def escape(value): return str(value).replace('\\','\\\\').replace('\n','\\n').replace(',','\\,').replace(';','\\;').replace('\r','')
     def stamp(value): return value.astimezone(dt_timezone.utc).strftime('%Y%m%dT%H%M%SZ')
-    lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Recitera//Class booking//EN','METHOD:PUBLISH','BEGIN:VEVENT',f'UID:{booking.id}@recitera.com',f'DTSTAMP:{stamp(booking.order.paid_at or timezone.now())}',f'DTSTART:{stamp(booking.slot.starts_at)}',f'DTEND:{stamp(booking.slot.ends_at)}',f'SUMMARY:{escape("Recitera class with "+booking.teacher_name)}',f'DESCRIPTION:{escape("Join your class: "+booking.meeting_url)}',f'URL:{booking.meeting_url}','END:VEVENT','END:VCALENDAR']
+    cancelled=booking.status=='cancelled'
+    stamp_time=booking.cancellation_request.decided_at if cancelled else booking.order.paid_at or timezone.now()
+    lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Recitera//Class booking//EN','METHOD:CANCEL' if cancelled else 'METHOD:PUBLISH','BEGIN:VEVENT',f'UID:{booking.id}@recitera.com',f'DTSTAMP:{stamp(stamp_time)}',f'DTSTART:{stamp(booking.slot.starts_at)}',f'DTEND:{stamp(booking.slot.ends_at)}',f'SUMMARY:{escape("Recitera class with "+booking.teacher_name)}',f'DESCRIPTION:{escape("Join your class: "+booking.meeting_url)}',f'URL:{booking.meeting_url}','STATUS:CANCELLED' if cancelled else 'STATUS:CONFIRMED',f'SEQUENCE:{1 if cancelled else 0}','END:VEVENT','END:VCALENDAR']
     # RFC 5545 line folding, limiting UTF-8 octets rather than characters.
     folded=[]
     for line in lines:
@@ -24,6 +26,8 @@ def calendar(booking):
 
 
 def queue_confirmation(booking):
+    from .booking_notices import queue_reminders
+    queue_reminders(booking)
     for recipient, tz in [(booking.student.email,booking.student_timezone),(booking.slot.teacher.user.email,booking.teacher_timezone)]:
         EmailDelivery.objects.get_or_create(booking=booking,recipient=recipient,defaults={'recipient_timezone':tz})
 
