@@ -7,6 +7,8 @@ from .models import ScholarshipApplication
 
 class ScholarshipTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = APIClient()
         self.data = {'request_id':str(uuid.uuid4()),'name':'Test Learner','email':'learner@example.com','whatsapp':'+1 555 123 4567','message':'Learning support for my child.'}
     def test_save_retry_and_admin_review(self):

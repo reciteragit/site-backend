@@ -402,6 +402,8 @@ def booking_data(booking,viewer):
     row['cancellation']={'status':cancellation.status,'reason':cancellation.reason,'requested_at':cancellation.requested_at.isoformat()} if cancellation else None
     row['can_request_cancellation']=booking.student_id==viewer.pk and booking.status=='confirmed' and not cancellation and booking.slot.starts_at>=timezone.now()+timedelta(hours=24)
     row['calendar_links']=calendar_links(booking) if booking.status=='confirmed' else {}
+    trial=getattr(booking,'crm_trial',None)
+    row['trial_feedback']={'outcome':trial.outcome,'feedback_submitted':bool(trial.feedback_at),'teacher_reported':bool(trial.teacher_reported_at),'can_submit':booking.status=='confirmed' and booking.slot.ends_at<=timezone.now()} if trial else None
     if booking.slot.teacher.user_id==viewer.pk:row.update(student_name=booking.student.get_full_name(),student_email=booking.student.email)
     return row
 
@@ -448,4 +450,5 @@ class ScheduledMail(AcademyView):
         from .notifications import flush_mail
         expire_holds()
         from .booking_notices import flush_notices
-        return Response({'sent':flush_mail(10),'notices_sent':flush_notices(20)})
+        from crm.communications import flush as flush_crm
+        return Response({'sent':flush_mail(5),'notices_sent':flush_notices(10),'crm_sent':flush_crm(5)})

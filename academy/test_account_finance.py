@@ -31,7 +31,7 @@ class AccountFinanceTests(TestCase):
         self.order(mode='test',amount=999)
         self.purchase()
         self.purchase(currency='USD',amount=7,subtotal=7)
-        self.purchase(buyer=None,amount=888)
+        unlinked=self.purchase(buyer=None,amount=888)
         other = get_user_model().objects.create_user('finance-other',email='other@example.com')
         self.order(user=other,amount=777)
         self.purchase(buyer=other,amount=666)
@@ -46,7 +46,7 @@ class AccountFinanceTests(TestCase):
         self.assertEqual(response.data['total_count'],5)
         self.assertEqual(len(response.data['transactions']),5)
         self.assertEqual(response['Cache-Control'],'private, no-store')
-        self.assertNotContains(response,'888')
+        self.assertNotIn(str(unlinked.pk),[row['id'] for row in response.data['transactions']])
         self.assertNotContains(response,'stripe_session_id')
 
     def test_authentication_is_required(self):

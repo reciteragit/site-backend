@@ -15,7 +15,9 @@ def recipients(booking):
 
 def queue_reminders(booking):
     now = timezone.now()
-    for kind, interval, grace in [('reminder_24h',timedelta(hours=24),timedelta(minutes=30)),('reminder_30m',timedelta(minutes=30),timedelta(minutes=30))]:
+    thresholds=[('reminder_24h',timedelta(hours=24),timedelta(minutes=30)),('reminder_30m',timedelta(minutes=30),timedelta(minutes=25 if booking.slot.kind=='trial' else 30))]
+    if booking.slot.kind=='trial':thresholds.append(('reminder_5m',timedelta(minutes=5),timedelta(minutes=5)))
+    for kind, interval, grace in thresholds:
         due = booking.slot.starts_at - interval
         # Classes booked after a reminder's threshold do not receive a misleading late reminder.
         if (booking.order.paid_at or now) > due or due + grace <= now:
@@ -46,7 +48,7 @@ def deliver_notice(pk):
     start=booking.slot.starts_at.astimezone(ZoneInfo(notice.recipient_timezone)).strftime('%A, %d %B %Y at %H:%M %Z')
     account='https://www.recitera.com/account'
     if notice.recipient==booking.slot.teacher.user.email:account+='/teaching#booking-'+str(booking.pk)
-    title={'reminder_24h':'Class reminder: 24 hours','reminder_30m':'Class reminder: 30 minutes','cancellation_request':'Class cancellation request — approval needed','cancellation_approved':'Class cancelled','cancellation_declined':'Cancellation request declined'}[notice.kind]
+    title={'reminder_5m':'Trial reminder: 5 minutes','reminder_24h':'Class reminder: 24 hours','reminder_30m':'Class reminder: 30 minutes','cancellation_request':'Class cancellation request — approval needed','cancellation_approved':'Class cancelled','cancellation_declined':'Cancellation request declined'}[notice.kind]
     text=f'Teacher: {booking.teacher_name}\nStudent: {booking.student.get_full_name()}\nClass time: {start}\nTime zone: {notice.recipient_timezone}\nBooking: {booking.id}\n\n'
     if notice.kind.startswith('reminder'):
         text+='Your Recitera class is coming up.\nJoin class: '+booking.meeting_url+'\n'

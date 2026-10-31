@@ -144,7 +144,7 @@ class BookingNotice(models.Model):
     booking = models.ForeignKey(Booking, on_delete=models.PROTECT, related_name='notices')
     recipient = models.EmailField()
     recipient_timezone = models.CharField(max_length=100)
-    kind = models.CharField(max_length=24, choices=[(v,v) for v in ['reminder_24h','reminder_30m','cancellation_request','cancellation_approved','cancellation_declined']])
+    kind = models.CharField(max_length=24, choices=[(v,v) for v in ['reminder_24h','reminder_30m','reminder_5m','cancellation_request','cancellation_approved','cancellation_declined']])
     due_at = models.DateTimeField()
     expires_at = models.DateTimeField(null=True, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)

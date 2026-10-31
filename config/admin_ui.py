@@ -39,6 +39,7 @@ UNFOLD = {
         'show_all_applications':True,
         'navigation':[
             {'items':[{'title':'Overview','icon':'space_dashboard','link':lambda request:reverse('admin:index')}, {'title':'Financial reports','icon':'monitoring','link':lambda request:reverse('admin:financial_report'),'permission':finance_permission}]},
+            {'title':'CRM & onboarding','separator':True,'items':[item('Lead pipeline','conversion_path','crm.Lead'),item('Trial enquiries','contact_page','crm.TrialRequest'),item('Trial outcomes & feedback','rate_review','crm.TrialRecord'),item('Communication queue','outgoing_mail','crm.Communication')]},
             {'title':'Academy','separator':True,'items':[
                 item('Teacher profiles','school','catalog.Teacher'),
                 item('Teaching & classrooms','video_camera_front','academy.TeachingProfile'),

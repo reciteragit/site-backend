@@ -1,3 +1,4 @@
+from crm.views import TrialRegistration
 from rest_framework.routers import DefaultRouter
 from .views import TeacherViewSet, CourseViewSet
 from django.urls import path
@@ -7,5 +8,5 @@ from .payments import DiscountPreview, Checkout, PaymentStatus, PaymentConfigura
 router = DefaultRouter()
 router.register("teachers", TeacherViewSet)
 router.register("courses", CourseViewSet)
-urlpatterns = [path('payments/discount/',DiscountPreview.as_view()),path('forms/scholarship/', ScholarshipRegistration.as_view()),path('payments/items/<str:purpose>/<slug:reference>/',PaymentItemDetails.as_view()),path('payments/config/',PaymentConfiguration.as_view()),path('payments/checkout/',Checkout.as_view()),path('payments/status/<uuid:order_id>/',PaymentStatus.as_view()),path('payments/stripe/webhook/',stripe_webhook),path('forms/teacher/', TeacherRegistration.as_view()), path('forms/volunteer/', VolunteerRegistration.as_view()), path('forms/newsletter/', NewsletterRegistration.as_view())] + router.urls
+urlpatterns = [path('forms/trial/',TrialRegistration.as_view()),path('payments/discount/',DiscountPreview.as_view()),path('forms/scholarship/', ScholarshipRegistration.as_view()),path('payments/items/<str:purpose>/<slug:reference>/',PaymentItemDetails.as_view()),path('payments/config/',PaymentConfiguration.as_view()),path('payments/checkout/',Checkout.as_view()),path('payments/status/<uuid:order_id>/',PaymentStatus.as_view()),path('payments/stripe/webhook/',stripe_webhook),path('forms/teacher/', TeacherRegistration.as_view()), path('forms/volunteer/', VolunteerRegistration.as_view()), path('forms/newsletter/', NewsletterRegistration.as_view())] + router.urls
 

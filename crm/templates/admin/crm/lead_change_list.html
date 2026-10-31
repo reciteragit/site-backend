@@ -1,0 +1,11 @@
+{% extends "admin/change_list.html" %}
+{% block content %}
+{% if crm_metrics %}<section aria-label="Filtered CRM pipeline" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:24px">
+  <div style="padding:20px;border:1px solid #aabda6;border-radius:12px"><small>Active leads</small><strong style="display:block;font-size:28px">{{ crm_metrics.active }}</strong></div>
+  <div style="padding:20px;border:1px solid #aabda6;border-radius:12px"><small>Contacts with trials</small><strong style="display:block;font-size:28px">{{ crm_metrics.trial_contacts }}</strong></div>
+  <div style="padding:20px;border:1px solid #aabda6;border-radius:12px"><small>Converted contacts</small><strong style="display:block;font-size:28px">{{ crm_metrics.converted }}</strong></div>
+  <div style="padding:20px;border:1px solid #aabda6;border-radius:12px"><small>Trial contact conversion</small><strong style="display:block;font-size:28px">{{ crm_metrics.conversion }}%</strong></div>
+  <div style="padding:20px;border:1px solid #aabda6;border-radius:12px"><small>Follow-ups due</small><strong style="display:block;font-size:28px">{{ crm_metrics.due }}</strong></div>
+</section><p style="font-size:12px;margin-bottom:20px">Metrics follow the filters below. Conversion counts authenticated contacts with trials who made a real paid class/course/package purchase; it is not an attendance or campaign attribution guarantee.</p>{% endif %}
+{{ block.super }}
+{% endblock %}

@@ -33,7 +33,7 @@ def cipher():
     key=hashlib.sha256(('recitera-google-auth-v1:'+settings.SECRET_KEY).encode()).digest()
     return Fernet(base64.urlsafe_b64encode(key))
 def safe_next(value):
-    return value if isinstance(value,str) and re.fullmatch(r'/(?:account(?:/teaching)?|cart|checkout|teachers/[a-z0-9-]+)',value) else '/account'
+    return value if isinstance(value,str) and re.fullmatch(r'(?:/(?:account(?:/teaching)?|cart|checkout|teachers/[a-z0-9-]+)|/account\?trial_claim=[A-Za-z0-9_.:%-]{1,250})',value) else '/account'
 def configured(redirect_uri):
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET or redirect_uri not in settings.GOOGLE_REDIRECT_URIS:return False
     parsed=urlsplit(redirect_uri)
