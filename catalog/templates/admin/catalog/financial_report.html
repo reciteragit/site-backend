@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+{% load static tz %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'recitera/finance.css' %}">{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> › Financial reports</div>{% endblock %}
+{% block content %}
+<div class="finance-report">
+  <header class="finance-header"><div><p class="finance-eyebrow">Recitera · Finance</p><h1>Financial reports</h1><p>Class bookings, recorded courses, packages and donations in one place.</p></div>{% if page %}<a class="finance-button" href="?{{ filter_query }}&amp;format=csv">Export filtered CSV</a>{% endif %}</header>
+  <form method="get" class="finance-filters">
+    {% if form.errors %}<div role="alert" class="finance-errors">Please correct the filters below.{{ form.non_field_errors }}</div>{% endif %}
+    <div class="finance-filter-grid">{% for field in form %}<label>{{ field.label }}{{ field }}{% if field.errors %}<span class="finance-errors">{{ field.errors }}</span>{% endif %}</label>{% endfor %}</div>
+    <div class="finance-filter-actions"><button class="finance-button" type="submit">Apply filters</button><a href="{% url 'admin:financial_report' %}">Reset to last 30 days</a></div>
+  </form>
+  <p class="finance-note">Totals cover all matching orders, not just the current page. Live, test and free orders and different currencies are never combined. Collected amounts are before Stripe fees and refunds; cancelling a class does not automatically refund its order. Filtering a package by teacher or course shows the whole order amount, not an allocated teacher payout.</p>
+  {% if page %}
+    {% for total in totals %}<section class="finance-total-group" aria-label="{{ total.currency }} {{ total.mode }} totals"><h2>{{ total.currency }} <span>{{ total.mode|upper }}</span></h2><div class="finance-metrics">
+      <div><span>Collected · paid orders</span><strong>{{ total.paid|floatformat:2 }}</strong><small>{{ total.paid_count }} completed checkouts</small></div>
+      <div><span>Awaiting payment</span><strong>{{ total.pending|floatformat:2 }}</strong><small>Held, pending and registered</small></div>
+      <div><span>Discounts on paid orders</span><strong>{{ total.saved|floatformat:2 }}</strong><small>Deducted before payment</small></div>
+      <div><span>Requires payment review</span><strong>{{ total.review|floatformat:2 }}</strong><small>{{ total.failed_count }} failed / expired orders · {{ total.count }} total</small></div>
+    </div></section>{% empty %}<div class="finance-empty">No transactions match these filters.</div>{% endfor %}
+    <div class="finance-result-heading"><h2>Transactions</h2><p>{{ count }} matching orders · {{ report_timezone }} · Page {{ page.number }} of {{ page.paginator.num_pages }}</p></div>
+    <div class="finance-table-scroll" tabindex="0" role="region" aria-label="Financial transactions"><table><thead><tr><th scope="col">Payment</th><th scope="col">Customer</th><th scope="col">Dates</th><th scope="col">Status / mode</th><th scope="col">Discount</th><th scope="col">Amount</th></tr></thead><tbody>
+      {% timezone report_timezone %}{% for row in page %}<tr>
+        <td><strong>{{ row.title }}</strong><small>{{ row.kind|title }}</small>{% if row.source == 'class' %}<a href="{% url 'admin:academy_order_change' row.report_id %}">{{ row.report_id }}</a>{% else %}<a href="{% url 'admin:catalog_paymentorder_change' row.report_id %}">{{ row.report_id }}</a>{% endif %}</td>
+        <td>{{ row.customer_email }}</td><td><span>Created: {{ row.created_at|date:"Y-m-d H:i" }}</span><small>Paid: {{ row.paid_at|date:"Y-m-d H:i"|default:"—" }}</small></td>
+        <td><span class="finance-status">{{ row.status }}</span><small>{{ row.mode|upper }} · {{ row.currency }}</small></td><td>{{ row.discount_amount|floatformat:2 }} {{ row.currency }}{% if row.discount_code %}<small>{{ row.discount_code }}</small>{% endif %}</td><td class="finance-amount">{{ row.amount|floatformat:2 }} {{ row.currency }}</td>
+      </tr>{% empty %}<tr><td colspan="6">No transactions.</td></tr>{% endfor %}{% endtimezone %}
+    </tbody></table></div>
+    <nav class="finance-pagination" aria-label="Report pages">{% if page.has_previous %}<a href="?{{ filter_query }}&amp;page={{ page.previous_page_number }}">← Previous</a>{% endif %}<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ filter_query }}&amp;page={{ page.next_page_number }}">Next →</a>{% endif %}</nav>
+  {% endif %}
+</div>
+{% endblock %}

@@ -16,6 +16,11 @@ def item(title, icon, label):
     return {'title':title, 'icon':icon, 'link':lambda request:reverse(f'admin:{app}_{model}_changelist'), 'permission':lambda request:permitted(request,label)}
 
 
+def finance_permission(request):
+    from catalog.finance_report import finance_allowed
+    return finance_allowed(request)
+
+
 UNFOLD = {
     'SITE_TITLE':'Recitera Admin',
     'SITE_HEADER':'RECITERA',
@@ -33,7 +38,7 @@ UNFOLD = {
         'show_search':True,
         'show_all_applications':True,
         'navigation':[
-            {'items':[{'title':'Overview','icon':'space_dashboard','link':lambda request:reverse('admin:index')}]},
+            {'items':[{'title':'Overview','icon':'space_dashboard','link':lambda request:reverse('admin:index')}, {'title':'Financial reports','icon':'monitoring','link':lambda request:reverse('admin:financial_report'),'permission':finance_permission}]},
             {'title':'Academy','separator':True,'items':[
                 item('Teacher profiles','school','catalog.Teacher'),
                 item('Teaching & classrooms','video_camera_front','academy.TeachingProfile'),

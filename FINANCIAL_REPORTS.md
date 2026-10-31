@@ -1,0 +1,11 @@
+# Administrative financial reports
+
+Open **Financial reports** in the Django admin sidebar, or `/admin/catalog/paymentorder/report/`. The report is read-only and combines academy class orders with catalog course, package, donation and other payment orders. Superusers have access; staff require view/change permission for both `academy.Order` and `catalog.PaymentOrder`. Ordinary learner and teacher accounts cannot access it. No payment-provider API calls or mutations occur when viewing or exporting.
+
+The initial view shows live orders created in the last 30 UTC dates. Filters cover inclusive local date range, report timezone, creation/payment-confirmation date basis, payment type, status, live/test/free mode, currency, teacher, course, customer/email/reference search, discount code and amount range. Clear both dates to include all dates. Selecting payment-confirmation dates naturally excludes orders without a confirmed payment timestamp.
+
+Totals apply to all matching records, independent of the 50-row transaction pagination. Separate cards are shown for every currency/mode combination; test transactions and different currencies are never combined with live totals. Paid amounts are gross collected checkout amounts before provider fees and refunds; discounts are reported separately. Cancellation does not imply refund. Filtering a package by a teacher or course includes its whole order and does not compute teacher earnings or allocate bundle revenue. Class orders are counted once even when several associated bookings match a teacher.
+
+**Export filtered CSV** streams all matching rows, not just the visible page, with original UTC timestamps, currency/mode/status, subtotal, discount/code, charged amount and order reference. Formula-like cells are neutralized for spreadsheet use. Customer emails and discount codes make exports private financial records; exports and report responses use private/no-store caching.
+
+`catalog.test_financial_report` covers cross-source totals, teacher/course/customer filters, timezone date boundaries, amount/code/status filters, full CSV export and formula protection, pagination-independent totals and authorization. Admin report assets are collected by the existing short Vercel build script.

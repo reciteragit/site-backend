@@ -69,6 +69,11 @@ class DonorAdmin(ModelAdmin):
 
 @admin.register(PaymentOrder)
 class PaymentOrderAdmin(ModelAdmin):
+    def get_urls(self):
+        from django.urls import path
+        from .finance_report import finance_report
+        return [path('report/',self.admin_site.admin_view(lambda request:finance_report(request,self.admin_site)),name='financial_report')]+super().get_urls()
+
     list_per_page=25
     date_hierarchy='created_at'
     list_select_related=['donor']
