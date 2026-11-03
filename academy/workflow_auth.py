@@ -35,3 +35,10 @@ def workflow_authorized(token):
         return True
     except Exception:
         return False
+
+
+def worker_authorized(request):
+    import os,hmac
+    secret=os.getenv('CRON_SECRET','')
+    authorization=request.headers.get('Authorization','')
+    return bool((secret and hmac.compare_digest(authorization,f'Bearer {secret}')) or (authorization.startswith('Bearer ') and workflow_authorized(authorization[7:])))

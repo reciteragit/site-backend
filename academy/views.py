@@ -442,11 +442,8 @@ class MailRetry(AcademyView):
 class ScheduledMail(AcademyView):
     permission_classes=[AllowAny];authentication_classes=[]
     def get(self,request):
-        import os,hmac
-        secret=os.getenv('CRON_SECRET','')
-        from .workflow_auth import workflow_authorized
-        authorization=request.headers.get('Authorization','')
-        if not ((secret and hmac.compare_digest(authorization,f'Bearer {secret}')) or (authorization.startswith('Bearer ') and workflow_authorized(authorization[7:]))):raise PermissionDenied('Not authorized.')
+        from .workflow_auth import worker_authorized
+        if not worker_authorized(request):raise PermissionDenied('Not authorized.')
         from .notifications import flush_mail
         expire_holds()
         from .booking_notices import flush_notices

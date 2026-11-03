@@ -21,6 +21,15 @@ jobs:
           request = urllib.request.Request(endpoint, headers={'Authorization': 'Bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']})
           with urllib.request.urlopen(request, timeout=20) as response:
               token = json.load(response)['value']
-          request = urllib.request.Request('https://site-backend-one.vercel.app/api/academy/internal/send-mail/', headers={'Authorization': 'Bearer ' + token})
-          with urllib.request.urlopen(request, timeout=65) as response:
-              print(json.load(response))
+          failures = []
+          # Run independently: an unavailable Telegram endpoint must not skip email reminders.
+          for path, timeout in [('send-mail', 65), ('telegram', 35)]:
+              try:
+                  request = urllib.request.Request('https://site-backend-one.vercel.app/api/academy/internal/' + path + '/', headers={'Authorization': 'Bearer ' + token})
+                  with urllib.request.urlopen(request, timeout=timeout) as response:
+                      print(path, json.load(response))
+              except Exception as error:
+                  failures.append(path)
+                  print(path, 'failed:', type(error).__name__)
+          if failures:
+              raise SystemExit('One or more delivery endpoints failed.')

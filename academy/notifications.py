@@ -38,7 +38,10 @@ def deliver(delivery_id):
         delivery=EmailDelivery.objects.select_for_update().select_related('booking__slot','booking__order').get(pk=delivery_id)
         if delivery.sent_at or (delivery.leased_until and delivery.leased_until>timezone.now()) or delivery.booking.status!='confirmed': return False
         if not settings.DEFAULT_FROM_EMAIL or (settings.EMAIL_BACKEND=='django.core.mail.backends.smtp.EmailBackend' and not settings.EMAIL_HOST) or (settings.EMAIL_BACKEND=='academy.email_backend.ResendBackend' and not settings.RESEND_API_KEY):
-            delivery.last_error='Email service is not configured';delivery.save(update_fields=['last_error']);return False
+            delivery.last_error='Email service is not configured';delivery.save(update_fields=['last_error'])
+            from operations.outbox import email_event
+            email_event('academy','emaildelivery',delivery_id,'confirmation',False,'service_not_configured')
+            return False
         delivery.leased_until=timezone.now()+timedelta(minutes=2)
         delivery.attempts+=1;delivery.save(update_fields=['leased_until','attempts'])
     booking=delivery.booking
@@ -53,8 +56,12 @@ def deliver(delivery_id):
         if message.send(fail_silently=False)!=1: raise RuntimeError('Mail backend did not accept email')
     except Exception as error:
         EmailDelivery.objects.filter(pk=delivery_id).update(leased_until=None,last_error=type(error).__name__)
+        from operations.outbox import email_event
+        email_event('academy','emaildelivery',delivery_id,'confirmation',False,type(error).__name__)
         return False
     EmailDelivery.objects.filter(pk=delivery_id).update(sent_at=timezone.now(),leased_until=None,last_error='')
+    from operations.outbox import email_event
+    email_event('academy','emaildelivery',delivery_id,'confirmation',True)
     return True
 
 

@@ -35,8 +35,14 @@ def deliver(pk):
     try:
         if message.send(fail_silently=False)!=1:raise RuntimeError('Email not accepted')
     except Exception as error:
-        Communication.objects.filter(pk=pk).update(leased_until=None,last_error=type(error).__name__);return False
-    Communication.objects.filter(pk=pk).update(sent_at=timezone.now(),leased_until=None,last_error='');return True
+        Communication.objects.filter(pk=pk).update(leased_until=None,last_error=type(error).__name__)
+        from operations.outbox import email_event
+        email_event('crm','communication',pk,item.kind,False,type(error).__name__)
+        return False
+    Communication.objects.filter(pk=pk).update(sent_at=timezone.now(),leased_until=None,last_error='')
+    from operations.outbox import email_event
+    email_event('crm','communication',pk,item.kind,True)
+    return True
 
 
 def flush(limit=5):

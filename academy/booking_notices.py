@@ -64,8 +64,12 @@ def deliver_notice(pk):
         if message.send(fail_silently=False)!=1:raise RuntimeError('Mail not accepted')
     except Exception as error:
         BookingNotice.objects.filter(pk=pk).update(leased_until=None,last_error=type(error).__name__)
+        from operations.outbox import email_event
+        email_event('academy','bookingnotice',pk,notice.kind,False,type(error).__name__)
         return False
     BookingNotice.objects.filter(pk=pk).update(sent_at=timezone.now(),leased_until=None,last_error='')
+    from operations.outbox import email_event
+    email_event('academy','bookingnotice',pk,notice.kind,True)
     return True
 
 

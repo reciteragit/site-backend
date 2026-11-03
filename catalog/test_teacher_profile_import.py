@@ -19,7 +19,12 @@ class UploadedTeacherProfileTests(TestCase):
         for row in rows:
             teacher=Teacher.objects.get(slug=row['slug'])
             self.assertEqual(teacher.biography,row['biography'])
-            result=client.get(f'/api/academy/teachers/{teacher.slug}/').json()
+            response=client.get(f'/api/academy/teachers/{teacher.slug}/')
+            if not teacher.published:
+                self.assertEqual(response.status_code,404)
+                continue
+            self.assertEqual(response.status_code,200)
+            result=response.json()
             for key in ['name','biography','based_in','specialities']:self.assertEqual(result[key],row[key])
             self.assertFalse(result['booking_enabled']);self.assertEqual(result['timezone'],'')
             self.assertNotIn('meeting_url',result)
