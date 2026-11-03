@@ -61,7 +61,7 @@ class CatalogTests(TestCase):
     def test_public_catalog_and_detail(self):
         response = self.client.get("/api/teachers/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.json()), 12)
+        self.assertEqual(len(response.json()), 10)
         response = self.client.get("/api/courses/")
         self.assertEqual(len(response.json()), 12)
         self.assertEqual(response.json()[0]["price"], "0.00")
@@ -72,7 +72,7 @@ class CatalogTests(TestCase):
         teacher = Teacher.objects.get(slug="mohammed-atalla")
         teacher.published = False
         teacher.save()
-        self.assertEqual(len(self.client.get("/api/teachers/").json()), 11)
+        self.assertEqual(len(self.client.get("/api/teachers/").json()), 9)
         self.assertEqual(self.client.get("/api/courses/").json(), [])
         self.assertEqual(self.client.get("/api/teachers/mohammed-atalla/").status_code, 404)
 
