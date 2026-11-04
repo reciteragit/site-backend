@@ -28,7 +28,7 @@ class UploadedTeacherProfileTests(TestCase):
             for key in ['name','biography','based_in','specialities']:self.assertEqual(result[key],row[key])
             self.assertFalse(result['booking_enabled']);self.assertEqual(result['timezone'],'')
             self.assertNotIn('meeting_url',result)
-        self.assertEqual(Teacher.objects.get(slug='fatima-abdulkazem').price,Decimal('20.00'))
+        self.assertEqual(Teacher.objects.get(slug='fatima-abdulkazem').price,Decimal('30.00'))
         self.assertFalse(TeachingProfile.objects.exists())
         self.assertFalse(get_user_model().objects.exists())
         self.assertEqual(Teacher.objects.get(slug='mohammed-atalla').name,'Mohammed Atalla')
