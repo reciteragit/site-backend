@@ -1,7 +1,7 @@
 import json, re
 from datetime import date
 from pathlib import Path
-from django.db import transaction
+from django.db import connection, transaction
 from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
@@ -65,6 +65,32 @@ def attachment(file,category):
     if not kind or (category=='profile_picture' and not kind.startswith('image/')):raise ValueError('Unsupported attachment. Use PDF, JPG or PNG; sample work also accepts MP4 or WebM.')
     return {'category':category,'filename':name,'content_type':kind,'size':len(data),'data':data}
 
+DUPLICATE_APPLICATION_MESSAGE = 'These details have already been submitted. Our support team will contact you.'
+
+
+def phone_identity(value):
+    digits=re.sub(r'[^0-9]', '', value)
+    return digits[2:] if digits.startswith('00') else digits
+
+
+def save_application(values, key, attachments=()):
+    # Serialize identity checks across concurrent requests, including old applications.
+    with transaction.atomic():
+        if connection.vendor == 'postgresql':
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT pg_advisory_xact_lock(%s)', [724190531])
+        if TeacherApplication.objects.filter(request_id=key).exists():
+            return Response({'success':True},status=201)
+        phone=phone_identity(values['whatsapp'])
+        duplicate=TeacherApplication.objects.filter(email__iexact=values['email']).exists()
+        if duplicate or any(phone_identity(number)==phone for number in TeacherApplication.objects.values_list('whatsapp',flat=True).iterator()):
+            return Response({'error':DUPLICATE_APPLICATION_MESSAGE,'code':'application_already_submitted'},status=409)
+        application=TeacherApplication.objects.create(request_id=key,**values)
+        if attachments:
+            TeacherAttachment.objects.bulk_create([TeacherAttachment(application=application,**item) for item in attachments])
+    return Response({'success':True},status=201)
+
+
 class TeacherRegistration(APIView):
     permission_classes=[AllowAny]
     authentication_classes=[]
@@ -76,9 +102,7 @@ class TeacherRegistration(APIView):
             if not serializer.is_valid():return Response({'error':'Please check your name, email, WhatsApp number and description.','fields':serializer.errors},status=400)
             if request.FILES:return Response({'error':'Attachments are not required for this form.'},status=400)
             values=dict(serializer.validated_data);key=values.pop('request_id')
-            with transaction.atomic():
-                TeacherApplication.objects.get_or_create(request_id=key,defaults=values)
-            return Response({'success':True},status=201)
+            return save_application(values,key)
         expanded=request.data.get('form_version')=='profile_v2'
         serializer=(ProfileTeacherApplicationSerializer if expanded else TeacherApplicationSerializer)(data=request.data)
         if not serializer.is_valid():return Response({'error':'Please check your application details.','fields':serializer.errors},status=400)
@@ -90,7 +114,4 @@ class TeacherRegistration(APIView):
         try:attachments=[attachment(f,name) for name,f in files]
         except ValueError as e:return Response({'error':str(e)},status=400)
         values=dict(serializer.validated_data);key=values.pop('request_id')
-        with transaction.atomic():
-            application,created=TeacherApplication.objects.get_or_create(request_id=key,defaults=values)
-            if created:TeacherAttachment.objects.bulk_create([TeacherAttachment(application=application,**f) for f in attachments])
-        return Response({'success':True},status=201)
+        return save_application(values,key,attachments)

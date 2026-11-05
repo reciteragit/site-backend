@@ -91,3 +91,21 @@ class ProfileTeacherApplicationTests(TestCase):
         cache.clear();body=self.payload();body['profile_picture']=SimpleUploadedFile('portrait.png',b'<script>invalid</script>',content_type='image/png')
         self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,400)
         self.assertFalse(TeacherApplication.objects.exists())
+
+    def test_new_request_cannot_repeat_email_or_normalized_phone(self):
+        self.assertEqual(self.client.post('/api/forms/teacher/',self.payload(),format='multipart').status_code,201)
+        for email,phone in [('APPLICANT@example.com','+447123456789'),('different@example.com','001 (555) 123-4567')]:
+            body=self.payload();body.update(request_id=str(uuid.uuid4()),email=email,whatsapp=phone)
+            response=self.client.post('/api/forms/teacher/',body,format='multipart')
+            self.assertEqual(response.status_code,409,response.data)
+            self.assertIn('support team will contact you',response.data['error'])
+        self.assertEqual(TeacherApplication.objects.count(),1)
+        self.assertEqual(TeacherAttachment.objects.count(),1)
+        body=self.payload();body.update(request_id=str(uuid.uuid4()),email='another@example.com',whatsapp='+447999123456')
+        self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,201)
+
+    def test_legacy_short_form_cannot_bypass_duplicate_check(self):
+        self.client.post('/api/forms/teacher/',self.payload(),format='multipart')
+        body={'request_id':str(uuid.uuid4()),'full_name':'Test Teacher','email':'applicant@example.com','whatsapp':'+447123456789','description':'Teaching application'}
+        self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,409)
+        self.assertEqual(TeacherApplication.objects.count(),1)
