@@ -34,6 +34,15 @@ class TeacherApplicationSerializer(serializers.ModelSerializer):
         if 'Other' in attrs.get('languages',[]) and not attrs.get('other_languages','').strip():raise serializers.ValidationError({'other_languages':'Please specify your teaching languages.'})
         return attrs
 
+class ProfileTeacherApplicationSerializer(TeacherApplicationSerializer):
+    first_name=serializers.CharField(max_length=100)
+    last_name=serializers.CharField(max_length=100)
+    gender=serializers.ChoiceField(choices=['Male','Female','Other'])
+    date_of_birth=serializers.DateField()
+    specializations=serializers.ListField(child=serializers.ChoiceField(choices=SPECIALTIES),min_length=1,max_length=4)
+    languages=serializers.ListField(child=serializers.ChoiceField(choices=['English','Arabic','Persian','Other']),min_length=1,max_length=4)
+
+
 class ShortTeacherApplicationSerializer(serializers.Serializer):
     request_id = serializers.UUIDField()
     full_name = serializers.CharField(max_length=200)
@@ -70,11 +79,13 @@ class TeacherRegistration(APIView):
             with transaction.atomic():
                 TeacherApplication.objects.get_or_create(request_id=key,defaults=values)
             return Response({'success':True},status=201)
-        serializer=TeacherApplicationSerializer(data=request.data)
+        expanded=request.data.get('form_version')=='profile_v2'
+        serializer=(ProfileTeacherApplicationSerializer if expanded else TeacherApplicationSerializer)(data=request.data)
         if not serializer.is_valid():return Response({'error':'Please check your application details.','fields':serializer.errors},status=400)
         groups={name:request.FILES.getlist(name) for name in ['sample_work','certificate','profile_picture']}
         files=[(name,f) for name,items in groups.items() for f in items]
-        if len(groups['profile_picture'])!=1 or (not groups['sample_work'] and not serializer.validated_data.get('sample_url')):return Response({'error':'A profile picture and sample work or sample link are required.'},status=400)
+        if len(groups['profile_picture'])!=1:return Response({'error':'Upload one profile photo (JPG or PNG).'},status=400)
+        if not expanded and not groups['sample_work'] and not serializer.validated_data.get('sample_url'):return Response({'error':'A profile picture and sample work or sample link are required.'},status=400)
         if len(files)>9 or sum(f.size for _,f in files)>3*1024*1024:return Response({'error':'Combined attachments must be 3 MB or less, with at most 9 files.'},status=413)
         try:attachments=[attachment(f,name) for name,f in files]
         except ValueError as e:return Response({'error':str(e)},status=400)

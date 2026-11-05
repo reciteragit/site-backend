@@ -70,3 +70,24 @@ class ShortTeacherApplicationTests(TestCase):
         body=dict(self.data,reviewed=True)
         self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,201)
         self.assertFalse(TeacherApplication.objects.get().reviewed)
+
+class ProfileTeacherApplicationTests(TestCase):
+    def setUp(self):cache.clear();self.client=APIClient();self.key=str(uuid.uuid4())
+    def payload(self):
+        return {'request_id':self.key,'form_version':'profile_v2','first_name':'Test','last_name':'Teacher','nickname':'','gender':'Female','date_of_birth':'1991-06-12','whatsapp':'+15551234567','years_of_experience':3,'email':'applicant@example.com','country':'Canada','timezone':'America/Vancouver','specializations':['Tajweed','Teaching Kids'],'languages':['English','Persian'],'referral':'Search','preferences':'I teach beginners','profile_picture':SimpleUploadedFile('portrait.png',b'\x89PNG\r\n\x1a\nfixture',content_type='image/png')}
+    def test_photo_only_application_persists_questions_and_is_idempotent(self):
+        for _ in range(2):
+            response=self.client.post('/api/forms/teacher/',self.payload(),format='multipart')
+            self.assertEqual(response.status_code,201,response.data)
+        row=TeacherApplication.objects.get()
+        self.assertEqual(row.languages,['English','Persian']);self.assertEqual(row.timezone,'America/Vancouver')
+        self.assertEqual(row.specializations,['Tajweed','Teaching Kids']);self.assertEqual(row.referral,'Search')
+        self.assertEqual(row.attachments.count(),1);self.assertEqual(row.attachments.get().category,'profile_picture')
+        self.assertFalse(row.sample_url);self.assertFalse(row.reviewed)
+    def test_missing_photo_required_questions_and_unsafe_photo_rejected(self):
+        for field in ['profile_picture','first_name','last_name','gender','date_of_birth','years_of_experience','country','timezone','specializations','languages']:
+            cache.clear();body=self.payload();body.pop(field)
+            self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,400,field)
+        cache.clear();body=self.payload();body['profile_picture']=SimpleUploadedFile('portrait.png',b'<script>invalid</script>',content_type='image/png')
+        self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,400)
+        self.assertFalse(TeacherApplication.objects.exists())
