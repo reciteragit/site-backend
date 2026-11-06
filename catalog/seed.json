@@ -250,6 +250,27 @@
         "Teaching Kids"
       ],
       "biography": "Muhammad Dowek, also known as Muhammad Ahmad, is a Quran, Tajweed and Arabic teacher based in Egypt with 6 years of teaching experience.\nHe teaches in English and Arabic and welcomes children.\nTeaching preferences: five days a week, with Tuesdays and Fridays off. His teaching timezone is Africa/Cairo. Exact teaching hours will be published in his availability calendar."
+    },
+    {
+      "slug": "leyla-hosseini",
+      "name": "Leyla Hosseini",
+      "experience": "3 years",
+      "languages": [
+        "English",
+        "Persian"
+      ],
+      "image": "/assets/leyla-hosseini.png",
+      "profile_url": "https://www.recitera.com/teachers/leyla-hosseini",
+      "price": "20.00",
+      "currency": "CAD",
+      "sort_order": 12,
+      "published": true,
+      "based_in": "Canada",
+      "specialities": [
+        "Tajweed",
+        "Teaching Kids"
+      ],
+      "biography": "Quran & Tajweed Teacher\nLeyla Hosseini, also known as Ava, is a Canada-based Quran teacher with 3 years of teaching experience. She teaches Tajweed and children in English and Persian (Farsi).\nHer teaching preference is female students and children. She teaches in the Pacific time zone (America/Vancouver); available lesson times will appear in her booking calendar."
     }
   ],
   "courses": [
