@@ -7,7 +7,7 @@ from unfold.admin import ModelAdmin
 from catalog.stripe_gateway import encrypt
 from .models import TelegramSettings,TelegramMessage
 from .outbox import connection,valid_connection,clean
-from .sender import api,TelegramFailure
+from .sender import api,TelegramFailure,deliver
 
 
 class ConnectionForm(forms.ModelForm):
@@ -67,7 +67,7 @@ class TelegramSettingsAdmin(ModelAdmin):
             payload={'chat_id':config.chat_id,'text':'RECITERA · Telegram connection test. Operational alerts are ready when enabled.','disable_web_page_preview':True}
             if config.thread_id:payload['message_thread_id']=config.thread_id
             api('sendMessage',config,payload)
-            self.message_user(request,'Test message sent to the configured Telegram chat.',messages.SUCCESS)
+            self.message_user(request,'Test message sent to the configured Telegram chat.' + (' Automatic alerts are disabled: enable Enabled and Forms enabled to receive teacher applications.' if not config.enabled or (config.row and not config.row.forms_enabled) else ''),messages.SUCCESS)
         except TelegramFailure as error:self.message_user(request,'Connection test failed: '+error.code,messages.ERROR)
 
 
@@ -84,8 +84,15 @@ class TelegramMessageAdmin(ModelAdmin):
     def retry(self,request,queryset):
         config=connection()
         if not valid_connection(config):self.message_user(request,'Configure a bot token and destination first.',messages.ERROR);return
-        count=queryset.filter(sent_at__isnull=True,dismissed_at__isnull=True).update(leased_until=None,next_attempt_at=timezone.now(),last_error='',chat_id=config.chat_id,thread_id=config.thread_id)
-        self.message_user(request,f'{count} unsent notifications requeued to the current configured chat.',messages.SUCCESS)
+        if not config.enabled:self.message_user(request,'Enable Telegram alerts before retrying notifications.',messages.ERROR);return
+        pending=queryset.filter(sent_at__isnull=True,dismissed_at__isnull=True)
+        count=pending.update(next_attempt_at=timezone.now(),chat_id=config.chat_id,thread_id=config.thread_id)
+        # Keep active delivery leases so a concurrent worker cannot send twice.
+        sent=0
+        for pk in list(pending.values_list('pk',flat=True)[:3]):
+            if deliver(pk):sent+=1
+            else:break
+        self.message_user(request,f'{sent} notifications sent now; {count-sent} remain queued. Check Last error for delivery failures.',messages.SUCCESS)
     @admin.action(description='Dismiss unsent notifications without deleting the audit record',permissions=['change'])
     def dismiss(self,request,queryset):
         count=queryset.filter(sent_at__isnull=True).update(dismissed_at=timezone.now())

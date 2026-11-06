@@ -124,3 +124,47 @@ class TelegramTests(TestCase):
         with patch.dict('os.environ',{'TELEGRAM_BOT_TOKEN':TOKEN,'TELEGRAM_CHAT_ID':'-100222333'}):
             pk=queue('env:test','forms','Environment connection')
         self.assertIsNotNone(pk);self.assertEqual(TelegramMessage.objects.get(pk=pk).chat_id,'-100222333')
+
+    def test_form_delivery_runs_after_commit_without_waiting_for_scheduler(self):
+        with patch('operations.sender.api',return_value={'message_id':501}) as bot:
+            with self.captureOnCommitCallbacks(execute=True):
+                application=TeacherApplication.objects.create(first_name='Teacher',email='new@example.com',whatsapp='+123456789')
+                bot.assert_not_called()
+            row=TelegramMessage.objects.get(key=f'form:catalog:teacherapplication:{application.pk}')
+            self.assertIsNotNone(row.sent_at)
+            self.assertEqual(row.attempts,1)
+            self.assertEqual(bot.call_count,1)
+            with self.captureOnCommitCallbacks(execute=True):application.save()
+            self.assertEqual(bot.call_count,1)
+
+    def test_form_delivery_failure_keeps_application_and_retry_queue(self):
+        with patch('operations.sender.api',side_effect=TelegramFailure('chat_unavailable')):
+            with self.captureOnCommitCallbacks(execute=True):
+                application=TeacherApplication.objects.create(email='retained@example.com',whatsapp='+123456789')
+        self.assertTrue(TeacherApplication.objects.filter(pk=application.pk).exists())
+        row=TelegramMessage.objects.get(key=f'form:catalog:teacherapplication:{application.pk}')
+        self.assertIsNone(row.sent_at);self.assertEqual(row.last_error,'chat_unavailable')
+        self.assertIsNotNone(row.next_attempt_at)
+
+    def test_rolled_back_form_never_sends_notification(self):
+        from django.db import transaction
+        with patch('operations.sender.api') as bot:
+            with self.captureOnCommitCallbacks(execute=True):
+                try:
+                    with transaction.atomic():
+                        TeacherApplication.objects.create(email='rollback@example.com',whatsapp='+123456789')
+                        raise ValueError('rollback')
+                except ValueError:pass
+            bot.assert_not_called()
+        self.assertFalse(TeacherApplication.objects.filter(email='rollback@example.com').exists())
+        self.assertFalse(TelegramMessage.objects.filter(category='forms').exists())
+
+    def test_admin_retry_sends_pending_notification_to_current_chat(self):
+        pk=queue('retry:old-chat','forms','Teacher application received')
+        TelegramMessage.objects.filter(pk=pk).update(chat_id='-999',last_error='chat_unavailable',next_attempt_at=timezone.now()+timedelta(hours=1))
+        admin=get_user_model().objects.create_superuser('retry-admin','retry@example.com','test-only-password');self.client.force_login(admin)
+        with patch('operations.sender.api',return_value={'message_id':502}) as bot:
+            response=self.client.post('/admin/operations/telegrammessage/',{'action':'retry','_selected_action':[str(pk)]},follow=True)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(bot.call_args.args[2]['chat_id'],self.config.chat_id)
+        self.assertIsNotNone(TelegramMessage.objects.get(pk=pk).sent_at)

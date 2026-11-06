@@ -39,7 +39,11 @@ def queue(key,category,title,details=None,admin_path='',contact=None):
                 for label,value in (contact or {}).items():
                     if value and label in ['Name','Email','Phone']:lines.append(label+': '+clean(value))
             if admin_path.startswith('/admin/') and '?' not in admin_path and '#' not in admin_path:lines.append('Admin: https://site-backend-one.vercel.app'+admin_path)
-            message,_=TelegramMessage.objects.get_or_create(key=key[:200],defaults={'category':category,'text':'\n'.join(lines)[:3900],'chat_id':config.chat_id,'thread_id':config.thread_id})
+            message,created=TelegramMessage.objects.get_or_create(key=key[:200],defaults={'category':category,'text':'\n'.join(lines)[:3900],'chat_id':config.chat_id,'thread_id':config.thread_id})
+            if created and category=='forms':
+                # Vercel may stop background work after the response. Send after the
+                # application commits; keep failed sends queued for the worker.
+                transaction.on_commit(lambda pk=message.pk: deliver_form_notification(pk), robust=True)
             return message.pk
     except Exception:return None
 
@@ -47,3 +51,12 @@ def queue(key,category,title,details=None,admin_path='',contact=None):
 def email_event(app,model,pk,kind,success,error=''):
     state='sent' if success else 'failed'
     return queue(f'email:{app}:{model}:{pk}:{state}','emails','Email '+state,{'Delivery':pk,'Type':kind,'Result':state,'Error type':error if not success else ''},f'/admin/{app}/{model}/{pk}/change/')
+
+
+def deliver_form_notification(pk):
+    # Never let an unavailable provider turn a saved form into a failed submission.
+    try:
+        from .sender import deliver
+        return deliver(pk)
+    except Exception:
+        return False
