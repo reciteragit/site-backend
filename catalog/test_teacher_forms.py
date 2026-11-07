@@ -92,20 +92,18 @@ class ProfileTeacherApplicationTests(TestCase):
         self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,400)
         self.assertFalse(TeacherApplication.objects.exists())
 
-    def test_new_request_cannot_repeat_email_or_normalized_phone(self):
+    def test_new_submission_can_reuse_email_and_phone_with_updated_details(self):
         self.assertEqual(self.client.post('/api/forms/teacher/',self.payload(),format='multipart').status_code,201)
-        for email,phone in [('APPLICANT@example.com','+447123456789'),('different@example.com','001 (555) 123-4567')]:
-            body=self.payload();body.update(request_id=str(uuid.uuid4()),email=email,whatsapp=phone)
-            response=self.client.post('/api/forms/teacher/',body,format='multipart')
-            self.assertEqual(response.status_code,409,response.data)
-            self.assertIn('support team will contact you',response.data['error'])
-        self.assertEqual(TeacherApplication.objects.count(),1)
-        self.assertEqual(TeacherAttachment.objects.count(),1)
-        body=self.payload();body.update(request_id=str(uuid.uuid4()),email='another@example.com',whatsapp='+447999123456')
-        self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,201)
+        body=self.payload();body.update(request_id=str(uuid.uuid4()),preferences='Updated teaching availability')
+        for _ in range(2):
+            response=self.client.post('/api/forms/teacher/',{**body,'profile_picture':SimpleUploadedFile('portrait.png',b'\x89PNG\r\n\x1a\nfixture',content_type='image/png')},format='multipart')
+            self.assertEqual(response.status_code,201,response.data)
+        self.assertEqual(TeacherApplication.objects.count(),2)
+        self.assertEqual(TeacherAttachment.objects.count(),2)
+        self.assertTrue(TeacherApplication.objects.filter(preferences='Updated teaching availability').exists())
 
-    def test_legacy_short_form_cannot_bypass_duplicate_check(self):
+    def test_short_form_can_resubmit_existing_email_and_phone(self):
         self.client.post('/api/forms/teacher/',self.payload(),format='multipart')
-        body={'request_id':str(uuid.uuid4()),'full_name':'Test Teacher','email':'applicant@example.com','whatsapp':'+447123456789','description':'Teaching application'}
-        self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,409)
-        self.assertEqual(TeacherApplication.objects.count(),1)
+        body={'request_id':str(uuid.uuid4()),'full_name':'Test Teacher','email':'applicant@example.com','whatsapp':'+15551234567','description':'Updated teaching application'}
+        self.assertEqual(self.client.post('/api/forms/teacher/',body,format='multipart').status_code,201)
+        self.assertEqual(TeacherApplication.objects.count(),2)

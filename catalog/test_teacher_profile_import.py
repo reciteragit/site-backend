@@ -70,14 +70,14 @@ class UploadedTeacherProfileTests(TestCase):
     def test_leyla_public_profile_price_languages_and_privacy(self):
         call_command('seed_catalog',verbosity=0)
         teacher=Teacher.objects.get(slug='leyla-hosseini')
-        self.assertEqual(teacher.price,Decimal('20.00'))
+        self.assertEqual(teacher.price,Decimal('30.00'))
         self.assertEqual(teacher.currency,'CAD');self.assertTrue(teacher.published)
         self.assertEqual(teacher.languages,['English','Persian'])
         self.assertEqual(teacher.specialities,['Tajweed','Teaching Kids'])
         response=APIClient().get('/api/academy/teachers/leyla-hosseini/')
         self.assertEqual(response.status_code,200)
         data=response.json()
-        self.assertEqual(data['name'],'Leyla Hosseini');self.assertEqual(data['price'],'20.00')
+        self.assertEqual(data['name'],'Leyla Hosseini');self.assertEqual(data['price'],'30.00')
         self.assertFalse(data['booking_enabled'])
         for private in ['laylani.canada@gmail.com','7786803641','1983']:
             self.assertNotIn(private,json.dumps(data))

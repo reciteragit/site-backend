@@ -1,7 +1,7 @@
 import json, re
 from datetime import date
 from pathlib import Path
-from django.db import connection, transaction
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
@@ -65,28 +65,11 @@ def attachment(file,category):
     if not kind or (category=='profile_picture' and not kind.startswith('image/')):raise ValueError('Unsupported attachment. Use PDF, JPG or PNG; sample work also accepts MP4 or WebM.')
     return {'category':category,'filename':name,'content_type':kind,'size':len(data),'data':data}
 
-DUPLICATE_APPLICATION_MESSAGE = 'These details have already been submitted. Our support team will contact you.'
-
-
-def phone_identity(value):
-    digits=re.sub(r'[^0-9]', '', value)
-    return digits[2:] if digits.startswith('00') else digits
-
-
 def save_application(values, key, attachments=()):
-    # Serialize identity checks across concurrent requests, including old applications.
+    # A new submission may reuse contact details; a network retry keeps its ID.
     with transaction.atomic():
-        if connection.vendor == 'postgresql':
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT pg_advisory_xact_lock(%s)', [724190531])
-        if TeacherApplication.objects.filter(request_id=key).exists():
-            return Response({'success':True},status=201)
-        phone=phone_identity(values['whatsapp'])
-        duplicate=TeacherApplication.objects.filter(email__iexact=values['email']).exists()
-        if duplicate or any(phone_identity(number)==phone for number in TeacherApplication.objects.values_list('whatsapp',flat=True).iterator()):
-            return Response({'error':DUPLICATE_APPLICATION_MESSAGE,'code':'application_already_submitted'},status=409)
-        application=TeacherApplication.objects.create(request_id=key,**values)
-        if attachments:
+        application,created=TeacherApplication.objects.get_or_create(request_id=key,defaults=values)
+        if created and attachments:
             TeacherAttachment.objects.bulk_create([TeacherAttachment(application=application,**item) for item in attachments])
     return Response({'success':True},status=201)
 
