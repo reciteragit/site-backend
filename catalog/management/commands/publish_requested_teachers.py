@@ -54,7 +54,7 @@ class Command(BaseCommand):
                 slug=slug, name=name, based_in=application.country, experience=experience,
                 languages=languages, specialities=application.specializations, biography='\n'.join(bio),
                 image='/assets/teacher-placeholder.svg', profile_url=f'https://www.recitera.com/teachers/{slug}',
-                price=Decimal('30.00'), currency='CAD', published=True,
+                price=Decimal('30.00'), currency='CAD', published=False,
                 sort_order=(Teacher.objects.aggregate(value=Max('sort_order'))['value'] or 0) + 1,
             )
             created += 1

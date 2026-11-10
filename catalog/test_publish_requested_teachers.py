@@ -17,7 +17,7 @@ class PublishRequestedTeachersTests(TestCase):
         self.assertEqual(Teacher.objects.count(),5)
         for teacher in Teacher.objects.all():
             self.assertEqual(teacher.price,Decimal('30'));self.assertEqual(teacher.currency,'CAD')
-            self.assertEqual(teacher.image,'/assets/teacher-placeholder.svg');self.assertTrue(teacher.published)
+            self.assertEqual(teacher.image,'/assets/teacher-placeholder.svg');self.assertFalse(teacher.published)
             for private in ['private@example.com','latest@example.com','+123456789','Private application note']:
                 self.assertNotIn(private,teacher.biography)
         teacher=Teacher.objects.get(slug='muhammad-shafi');self.assertEqual(teacher.experience,'7 years');self.assertEqual(teacher.languages,['Arabic'])
